@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" packages="org.apache.logging.log4j.core,org.slf4j" monitorInterval="30">
+
+    <!-- Logging Properties -->
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ} %t %p %m%n</Property>
+        <Property name="APP_LOG_ROOT">c:/temp</Property>
+        <!-- -DlogFilePrefix=core -->
+        <Property name="logFilePrefix">core</Property>
+        <Property name="logFileLevel">info</Property>
+        <Property name="log_path">/data/logs</Property>
+        <Property name="audit_log_path">${sys:log_path}/analytics</Property>
+        <Property name="auditLogFilePrefix">${sys:logFilePrefix}_audit</Property>
+
+    </Properties>
+
+    <Appenders>
+
+        <Console name="Console-Appender" target="SYSTEM_OUT">
+            <PatternLayout>
+                <pattern>
+                    [{%d{yyyy-MM-dd HH:mm:ss.SSS}] [%t] [%highlight{%-5level }] [%style{%X{uniqueTrackingId}}{bright,blue}] [%style{%C{1.}:%L}{bright,yellow}]: %msg%n%throwable
+                </pattern>
+            </PatternLayout>
+        </Console>
+
+        <RollingRandomAccessFile name="App-File-Appender"
+                                 fileName="${sys:log_path}/${sys:logFilePrefix}.log"
+                                 filePattern="${sys:log_path}/${sys:logFilePrefix}.log-%d{yyyy-MM-dd-HH}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>[{%d{yyyy-MM-dd HH:mm:ss.SSS}] [%t] [%highlight{%-5level }] [%style{%X{uniqueTrackingId}}{bright,blue}] [%style{%C{1.}:%L}{bright,yellow}]: %msg%n%throwable
+                </Pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="512 MB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <DefaultRolloverStrategy max="100" />
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="auditLog_FileAppender"
+                                 fileName="${sys:audit_log_path}/${sys:auditLogFilePrefix}.log"
+                                 immediateFlush="false"
+                                 filePattern="${sys:audit_log_path}/${sys:auditLogFilePrefix}.log.%d{yyyy-MM-dd-HH}.gz">
+            <PatternLayout>
+                <Pattern>%m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingRandomAccessFile>
+        <!-- Sentry name="Sentry" minimumEventLevel="ERROR" / -->
+    </Appenders>
+
+    <Loggers>
+
+        <AsyncRoot additivity="false" level="${sys:logFileLevel}">
+            <AppenderRef ref="App-File-Appender" level="${sys:logFileLevel}"/>
+            <!-- AppenderRef ref="Sentry"/ -->
+            <!--<AppenderRef ref="Console-Appender" />-->
+        </AsyncRoot>
+
+        <AsyncLogger name="auditLog" level="${sys:logFileLevel}" includeLocation="false" additivity="false">
+            <AppenderRef ref="auditLog_FileAppender"/>
+        </AsyncLogger>
+    </Loggers>
+
+</Configuration>

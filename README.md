@@ -74,3 +74,27 @@ Spring Boot Actuator provides several endpoints to monitor and manage your appli
 - `/actuator/metrics`: Shows metrics information.
 
 These endpoints can be accessed and configured in the `application.properties` file.
+
+
+### Access Logging
+
+To enable access logging, you need to add the following VM option and properties:
+
+**VM Option:**
+```sh
+-Dserver.tomcat.basedir=./logs/access/
+```
+**Properties:**
+```properties
+server.tomcat.accesslog.enabled=true
+server.tomcat.accesslog.directory=./logs
+server.tomcat.accesslog.prefix=access_log
+server.tomcat.accesslog.suffix=.log
+server.tomcat.accesslog.pattern=%h %l %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\"
+server.tomcat.accesslog.request-attributes-enabled=true
+server.tomcat.accesslog.file-date-format=.yyyy-MM-dd
+server.tomcat.accesslog.include-query-string=true
+server.tomcat.accesslog.include-headers=false
+server.tomcat.accesslog.rotate=true
+```
+
