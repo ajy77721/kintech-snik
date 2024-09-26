@@ -1,12 +1,17 @@
 package com.kitchen.sink.config;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchen.sink.dto.APIResponseDTO;
+import com.kitchen.sink.dto.ErrorDTO;
 import com.kitchen.sink.filter.JwtRequestFilter;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -31,6 +36,8 @@ public class SecurityConfig {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private CorsConfigurationSource corsConfigurationSource;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -53,6 +60,18 @@ public class SecurityConfig {
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .authenticationProvider(authenticationProvider()).addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) ->
+                        {
+                            APIResponseDTO<ErrorDTO> apiResponse = APIResponseDTO.<ErrorDTO>builder()
+                                    .status(false)
+                                    .error(ErrorDTO.builder().message(authException.getMessage()).build())
+                                    .build();
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+                        })
+                )
                 .build();
     }
 

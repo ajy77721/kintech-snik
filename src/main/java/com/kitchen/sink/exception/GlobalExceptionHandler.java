@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<APIResponseDTO<?>> handleDuplicateKeyException(DuplicateKeyException ex) {
         log.error("Duplicate Key Exception", ex);
-        return new ResponseEntity<>(buildErrorResponse("Duplicate Key Exception"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(buildErrorResponse("email already used"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<APIResponseDTO<?>> handleValidationExceptions(MethodArgumentNotValidException ex) {

@@ -3,6 +3,7 @@ package com.kitchen.sink.controller;
 import com.kitchen.sink.dto.*;
 import com.kitchen.sink.entity.UserSession;
 import com.kitchen.sink.repo.UserSessionRepository;
+import com.kitchen.sink.service.AuthService;
 import com.kitchen.sink.service.UserService;
 import com.kitchen.sink.utils.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,16 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private UserSessionRepository userSessionRepository;
+    private AuthService authService;
 
     @Operation(summary = "Log in user", description = "Log in user with email and password")
     @ApiResponses(value = {
@@ -47,24 +39,10 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<APIResponseDTO<LoginResponseDTO>> login(@RequestBody LoginRequestDTO loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
-        );
-        if (!authentication.isAuthenticated()) {
-            throw new UsernameNotFoundException("invalid user request !");
-        }
-        UserDTO user = userService.getUserDTOByEmail(loginRequest.email());
-        UserSession byUsername = userSessionRepository.findByUsername(user.email());
-        if (byUsername != null) {
-            if (jwtUtil.validateToken(byUsername.getToken(), user.email())) {
-                return ResponseEntity.ok(APIResponseDTO.<LoginResponseDTO>builder().status(true).data(LoginResponseDTO.builder().token(byUsername.getToken()).email(user.email()).build()).build());
-            }
-            userSessionRepository.deleteById(byUsername.getId());
-        }
-
-        String jwt = jwtUtil.generateToken(user.email(), user.roles());
-        userSessionRepository.save(UserSession.builder().username(user.email()).token(jwt).build());
-        return ResponseEntity.ok(APIResponseDTO.<LoginResponseDTO>builder().status(true).data(LoginResponseDTO.builder().token(jwt).email(user.email()).build()).build());
+        return ResponseEntity.ok(APIResponseDTO.<LoginResponseDTO>builder()
+                        .status(true).
+                        data(authService.login(loginRequest)).
+                        build());
 
     }
 
@@ -81,13 +59,9 @@ public class AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<APIResponseDTO<LogoutResponseDTO>> logout(@RequestHeader("Authorization") String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String jwt = authorizationHeader.substring(7);
-            userSessionRepository.deleteByToken(jwt);
-        }
-        APIResponseDTO<LogoutResponseDTO> build =  APIResponseDTO.<LogoutResponseDTO>builder().status(true)
-                .data(LogoutResponseDTO.builder()
-                        .message("Logout successfully !").build()).build();
-        return ResponseEntity.ok(build);
+        return ResponseEntity.ok(APIResponseDTO.<LogoutResponseDTO>builder()
+                .status(true)
+                .data(authService.logout(authorizationHeader))
+                .build());
     }
 }
