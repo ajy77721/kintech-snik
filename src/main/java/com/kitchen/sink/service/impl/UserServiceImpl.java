@@ -6,11 +6,14 @@ import com.kitchen.sink.dto.request.ResetPasswordReqDTO;
 import com.kitchen.sink.dto.request.UserReqDTO;
 import com.kitchen.sink.dto.response.UserResDTO;
 import com.kitchen.sink.dto.response.UserResV1DTO;
+import com.kitchen.sink.entity.Member;
 import com.kitchen.sink.entity.User;
+import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.exception.NotFoundException;
 import com.kitchen.sink.exception.ValidationException;
+import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.UserService;
 import com.kitchen.sink.utils.JwtUtil;
@@ -39,6 +42,8 @@ public class UserServiceImpl implements UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private MemberRepository memberRepository;
 
     @Override
     @Transactional
@@ -53,7 +58,8 @@ public class UserServiceImpl implements UserService {
         }
         user.setCreatedBy(createdBy);
         user.setCreatedTime(LocalDateTime.now());
-        user.setStatus(UserStatus.ACTIVE);
+        user.setLastModifiedBy(createdBy);
+        user.setLastModifiedTime(user.getCreatedTime());
         userRepository.save(user);
         log.info("User saved: {}", user);
         return convertor.convert(user, UserResDTO.class);
@@ -82,9 +88,20 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserDTOByEmail(String email) {
         Optional<User> user = userRepository.findByEmail(email);
         if (user.isEmpty()) {
-            throw new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST);
+           Member member= memberRepository.findByEmail(email)
+                   .orElseThrow(() ->
+                           new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
+            if(!member.getStatus().equals(MemberStatus.APPROVED)){
+                throw new ValidationException("Application on "+member.getStatus()+" status",HttpStatus.BAD_REQUEST);
+            }
+        }
+        if (user.isPresent()){
+        if (user.get().getStatus().equals(UserStatus.BLOCKED)){
+            throw new ValidationException("User is blocked",HttpStatus.BAD_REQUEST);
         }
         return convertor.convert(user.get(), UserDTO.class);
+        }
+        return null;
     }
 
     @Override
@@ -102,17 +119,23 @@ public class UserServiceImpl implements UserService {
         if (updateBy == null) {
             updateBy = user.getEmail();
         }
-        userToBeUpdate.setUpdatedBy(updateBy);
-        userToBeUpdate.setUpdatedTime(LocalDateTime.now());
+        userToBeUpdate.setLastModifiedBy(updateBy);
+        userToBeUpdate.setLastModifiedTime(LocalDateTime.now());
+        userToBeUpdate.setStatus(user.getStatus());
         userRepository.save(userToBeUpdate);
         log.info("User updated: {}", userToBeUpdate);
         return convertor.convert(userToBeUpdate, UserResDTO.class);
     }
 
     @Override
+    @Transactional
     public void deleteUser(String id) {
         log.info("Deleting User by ID: {}", id);
+        User user=userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + id, HttpStatus.BAD_REQUEST));
         userRepository.deleteById(id);
+        memberRepository.deleteByEmail(user.getEmail());
+
     }
 
     @Override
@@ -127,8 +150,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(resetPasswordReqDTO.id())
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + resetPasswordReqDTO.id(), HttpStatus.BAD_REQUEST));
         user.setPassword(passwordEncoder.encode(resetPasswordReqDTO.password()));
-        user.setUpdatedTime(LocalDateTime.now());
-        user.setUpdatedBy(jwtUtil.getEmail());
+        user.setLastModifiedTime(LocalDateTime.now());
+        user.setLastModifiedBy(jwtUtil.getEmail());
         userRepository.save(user);
     }
 
@@ -142,8 +165,8 @@ public class UserServiceImpl implements UserService {
             throw  new ValidationException("Current password is incorrect", HttpStatus.BAD_REQUEST);
         }
         user.setPassword(passwordEncoder.encode(changePasswordResDTO.newPassword()));
-        user.setUpdatedTime(LocalDateTime.now());
-        user.setUpdatedBy(currentUser);
+        user.setLastModifiedTime(LocalDateTime.now());
+        user.setLastModifiedBy(currentUser);
         userRepository.save(user);
     }
 
@@ -162,7 +185,7 @@ public class UserServiceImpl implements UserService {
             throw new ValidationException("User must have at least one role", HttpStatus.BAD_REQUEST);
         }
         if (!userDTO.roles().contains(UserRole.VISITOR)){
-            throw new IllegalArgumentException("User should have role VISITOR");
+            throw new ValidationException("User should have role VISITOR",HttpStatus.BAD_REQUEST);
         }
     }
 

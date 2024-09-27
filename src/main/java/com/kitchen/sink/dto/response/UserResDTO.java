@@ -10,6 +10,7 @@ public record UserResDTO (
         String id,
         String name,
         String email,
+         String phoneNumber,
         Set<UserRole> roles,
         UserStatus status
 ){

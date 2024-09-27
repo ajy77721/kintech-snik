@@ -1,7 +1,6 @@
 package com.kitchen.sink.controller;
 
 import com.kitchen.sink.dto.APIResponseDTO;
-import com.kitchen.sink.dto.UserDTO;
 import com.kitchen.sink.dto.request.ChangePasswordResDTO;
 import com.kitchen.sink.dto.request.ResetPasswordReqDTO;
 import com.kitchen.sink.dto.request.UserReqDTO;
@@ -42,7 +41,7 @@ public class UserController {
             ))),
             @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
-    @PostMapping("/")
+    @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<APIResponseDTO<UserResDTO>> saveUser(@RequestBody @NotNull(message = "UserDTO cannot be null") @Validated(CreateGroup.class) UserReqDTO userDTO) {
         UserResDTO savedUser = userService.saveUser(userDTO);
@@ -90,7 +89,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
 
-    @PutMapping("/")
+    @PutMapping
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<APIResponseDTO<UserResDTO>> updateUser(@RequestBody @NotNull(message = "cannot be null") @Validated(UpdateGroup.class) UserReqDTO userDTO) {
         UserResDTO updatedUser = userService.updateUser(userDTO);
@@ -122,7 +121,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
 
-    @GetMapping("/")
+    @GetMapping()
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<APIResponseDTO<List<UserResV1DTO>>> getAll() {
         return ResponseEntity.ok().body(APIResponseDTO.<List<UserResV1DTO>>builder().status(true).data(userService.getAllUsers()).build());

@@ -11,10 +11,12 @@ public record UserResV1DTO(
         String id,
         String name,
         String email,
+        String phoneNumber,
         Set<UserRole> roles,
         LocalDateTime createdTime,
-        LocalDateTime updatedTime,
+        LocalDateTime lastModifiedTime,
         String createdBy,
-        String updatedBy,
+        String lastModifiedBy,
         UserStatus status
-) {}
+) {
+}

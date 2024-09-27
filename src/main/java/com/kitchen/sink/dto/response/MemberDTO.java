@@ -10,9 +10,9 @@ public record MemberDTO(
         String email,
         String phoneNumber,
         LocalDateTime createdTime,
-        LocalDateTime updatedTime,
+        LocalDateTime lastModifiedTime,
         String createdBy,
-        String updatedBy,
+        String lastModifiedBy,
         MemberStatus status,
         String approvedBy,
         LocalDateTime approvedTime

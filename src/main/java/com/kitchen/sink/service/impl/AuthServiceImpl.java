@@ -38,6 +38,9 @@ public class AuthServiceImpl implements AuthService {
             throw new UsernameNotFoundException("invalid user request !");
         }
         UserDTO user = userService.getUserDTOByEmail(loginRequest.email());
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with username: " + loginRequest.email());
+        }
         UserSession byUsername = userSessionRepository.findByUsername(user.email());
         if (byUsername != null) {
             if (jwtUtil.validateToken(byUsername.getToken(), user.email())) {

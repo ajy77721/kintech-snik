@@ -6,6 +6,7 @@ import com.kitchen.sink.utils.ObjectConvertor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -59,6 +60,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<APIResponseDTO<?>> handleDuplicateKeyException(DuplicateKeyException ex) {
         log.error("Duplicate Key Exception", ex);
         return new ResponseEntity<>(buildErrorResponse("email already used"), HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleAccessDeniedException(AccessDeniedException ex) {
+        log.error("Access Denied Exception", ex);
+        return new ResponseEntity<>(buildErrorResponse("You do not have permission to access this functionality. Please contact the Administrator."), HttpStatus.FORBIDDEN);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<APIResponseDTO<?>> handleValidationExceptions(MethodArgumentNotValidException ex) {

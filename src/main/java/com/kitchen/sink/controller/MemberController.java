@@ -2,6 +2,7 @@ package com.kitchen.sink.controller;
 
 import com.kitchen.sink.dto.APIResponseDTO;
 import com.kitchen.sink.dto.request.MemberReqDTO;
+import com.kitchen.sink.dto.request.ResetPasswordReqDTO;
 import com.kitchen.sink.dto.response.MemberDTO;
 import com.kitchen.sink.dto.response.MemberResDTO;
 import com.kitchen.sink.enums.MemberStatus;
@@ -45,7 +46,7 @@ public class MemberController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
 
     })
-    @PostMapping("/")
+    @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
     public ResponseEntity<APIResponseDTO<MemberResDTO>> addMember(@RequestBody @NotNull(message = "MemberDTO cannot be null") @Validated(CreateGroup.class) MemberReqDTO memberReqDTO) {
         APIResponseDTO<MemberResDTO> apiResponse = APIResponseDTO.<MemberResDTO>builder().status(true).data(memberService.saveMember(memberReqDTO)).build();
@@ -78,7 +79,7 @@ public class MemberController {
 
     })
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    @PutMapping("/")
+    @PutMapping
     public ResponseEntity<APIResponseDTO<MemberResDTO>> updateMember(@Validated(UpdateGroup.class) @RequestBody @NotNull(message = "cannot be null") MemberReqDTO memberReqDTO) {
         return ResponseEntity.ok().body(APIResponseDTO.<MemberResDTO>builder().status(true).data(memberService.updateMember(memberReqDTO)).build());
     }
@@ -110,10 +111,10 @@ public class MemberController {
 
     })
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    @PatchMapping("/change-status")
+    @PostMapping("/change-status")
     public ResponseEntity<APIResponseDTO<String>> changeMemberStatus(@RequestParam @NotBlank(message = "memberId can not be blank") String memberId,
                                                                      @RequestParam @NotNull(message = "memberStatus can not be null")  MemberStatus status,
-                                                                     @RequestParam Set<UserRole> userRoles) {
+                                                                     @RequestParam(required = false) Set<UserRole> userRoles) {
         memberService.changeMemberStatus(memberId,status,userRoles);
         return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("Member Status Update Successfully").build());
     }
@@ -128,7 +129,7 @@ public class MemberController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
 
     })
-    @PostMapping("/register/")
+    @PostMapping("/register")
     public ResponseEntity<APIResponseDTO<String>> registerMember(@RequestBody @NotNull(message = "MemberDTO cannot be null") @Validated(RegisterGroup.class)  MemberReqDTO memberReqDTO) {
         memberService.registerMember(memberReqDTO);
         return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("Registration successful. Pending approval").build());
@@ -144,9 +145,26 @@ public class MemberController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
 
     })
-    @GetMapping("/")
+    @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
     public ResponseEntity<APIResponseDTO<List<MemberDTO>>> getAllMembers() {
         return ResponseEntity.ok().body(APIResponseDTO.<List<MemberDTO>>builder().status(true).data(memberService.getAllMembers()).build());
+    }
+
+    @Operation(summary = "Reset Password", description = "Reset member password by member id")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reset member password by member id success", content = @Content(schema = @Schema(
+                    implementation = APIResponseDTO.class,
+                    subTypes = {String.class}
+            ))),
+            @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
+
+    })
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PostMapping("/reset-password")
+    public ResponseEntity<APIResponseDTO<String>> resetPassword(@RequestBody @Validated @NotNull(message = "Can not be null") ResetPasswordReqDTO resetPasswordReqDTO) {
+        memberService.resetPassword(resetPasswordReqDTO);
+        return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("Member Password Update Successfully").build());
     }
 }

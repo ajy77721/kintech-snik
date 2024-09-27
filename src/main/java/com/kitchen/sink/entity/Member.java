@@ -9,7 +9,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Document(collection = "members")
 @Data
@@ -38,10 +37,10 @@ public class Member {
 
     @NotNull
     private LocalDateTime createdTime;
-    private LocalDateTime updatedTime;
+    private LocalDateTime lastModifiedTime;
     @NotNull
     private String createdBy;
-    private String updatedBy;
+    private String lastModifiedBy;
     @NotNull
     private MemberStatus status;
     private String approvedBy;

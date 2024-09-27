@@ -1,6 +1,7 @@
 package com.kitchen.sink.service;
 
 import com.kitchen.sink.dto.request.MemberReqDTO;
+import com.kitchen.sink.dto.request.ResetPasswordReqDTO;
 import com.kitchen.sink.dto.response.MemberDTO;
 import com.kitchen.sink.dto.response.MemberResDTO;
 import com.kitchen.sink.enums.MemberStatus;
@@ -24,4 +25,6 @@ public interface MemberService {
     void registerMember(MemberReqDTO memberReqDTO);
 
     List<MemberDTO> getAllMembers();
+
+    void resetPassword(ResetPasswordReqDTO resetPasswordReqDTO);
 }

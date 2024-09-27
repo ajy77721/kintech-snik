@@ -28,16 +28,20 @@ public class MongoInitializer {
 
     @PostConstruct
     public void init() {
-        mongoTemplate.indexOps(User.class)
-                .ensureIndex(new Index()
-                        .on("email", Sort.Direction.ASC)
-                        .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
-        mongoTemplate.indexOps(Member.class)
-                .ensureIndex(new Index()
-                        .on("email", Sort.Direction.ASC)
-                        .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
+        //TODO check if exist then don't create again
 
-        User user = fetchUserByEmail(masterTokenConfig.getEmail());
+        if (!indexExists(User.class, "email")) {
+            mongoTemplate.indexOps(User.class)
+                    .ensureIndex(new Index()
+                            .on("email", Sort.Direction.ASC)
+                            .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
+        }
+        if (!indexExists(Member.class, "email")) {
+            mongoTemplate.indexOps(Member.class)
+                    .ensureIndex(new Index()
+                            .on("email", Sort.Direction.ASC)
+                            .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
+        } User user = fetchUserByEmail(masterTokenConfig.getEmail());
         if (user == null) {
             user = new User();
         }
@@ -47,9 +51,9 @@ public class MongoInitializer {
         user.setRoles(masterTokenConfig.getRoles());
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedTime(LocalDateTime.now());
-        user.setUpdatedTime(LocalDateTime.now());
+        user.setLastModifiedTime(LocalDateTime.now());
         user.setCreatedBy("system");
-        user.setUpdatedBy("system");
+        user.setLastModifiedBy("system");
         mongoTemplate.save(user);
     }
 
@@ -58,4 +62,10 @@ public class MongoInitializer {
         query.addCriteria(Criteria.where("email").is(email));
         return mongoTemplate.findOne(query.collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())), User.class);
     }
+    private boolean indexExists(Class<?> entityClass, String fieldName) {
+        return mongoTemplate.indexOps(entityClass).getIndexInfo().stream()
+                .anyMatch(indexInfo -> indexInfo.getIndexFields().stream()
+                        .anyMatch(indexField -> indexField.getKey().equals(fieldName)));
+    }
 }
+

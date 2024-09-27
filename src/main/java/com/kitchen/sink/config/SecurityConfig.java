@@ -12,10 +12,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,6 +30,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -49,7 +52,7 @@ public class SecurityConfig {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                       // .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .requestMatchers("/auth/login", "/auth/logout").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/member/register/").permitAll()
@@ -65,14 +68,17 @@ public class SecurityConfig {
                         {
                             APIResponseDTO<ErrorDTO> apiResponse = APIResponseDTO.<ErrorDTO>builder()
                                     .status(false)
-                                    .error(ErrorDTO.builder().message(authException.getMessage()).build())
-                                    .build();
+                                    .error(ErrorDTO.builder()
+                                            .message(authException.getMessage().equals("Access Denied")?"You do not have permission to access this functionality. Please contact the Administrator." : getErrorMessages()).build()).build();
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
                         })
                 )
                 .build();
+    }
+    private String getErrorMessages() {
+        return "Invalid username or password";
     }
 
 

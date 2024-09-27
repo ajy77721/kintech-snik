@@ -8,7 +8,7 @@ import jakarta.validation.constraints.*;
 
 public record MemberReqDTO(
 
-        @NotNull(groups = UpdateGroup.class)
+        @NotNull(groups = UpdateGroup.class, message = "Id is mandatory")
         String id,
 
         @NotBlank(message = "Name is mandatory", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
@@ -29,8 +29,7 @@ public record MemberReqDTO(
         @Null(message ="password should be null" , groups = {UpdateGroup.class})
         String password,
 
-        @Null(message ="memberStatus should be null" ,groups = RegisterGroup.class)
-        @NotNull(message = "memberStatus is mandatory", groups = {CreateGroup.class})
+        @Null(message ="memberStatus should be null" ,groups ={ RegisterGroup.class,CreateGroup.class})
         MemberStatus status
 ) {
 }

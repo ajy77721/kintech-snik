@@ -18,18 +18,20 @@ public class User  {
 
     @Id
     private String id;
-    @Indexed(unique = true)
     @NotNull
     private String name;
     @NotNull
+    @Indexed(unique = true)
     private String email;
     @NotNull
     private String password;
+
+    private String phoneNumber;
     @NotNull
     private Set<UserRole> roles;
     private LocalDateTime createdTime;
-    private LocalDateTime updatedTime;
+    private LocalDateTime lastModifiedTime;
     private String createdBy;
-    private String updatedBy;
+    private String lastModifiedBy;
     private UserStatus status;
 }

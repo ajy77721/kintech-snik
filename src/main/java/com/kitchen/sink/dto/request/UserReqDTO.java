@@ -3,10 +3,9 @@ package com.kitchen.sink.dto.request;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.validation.CreateGroup;
+import com.kitchen.sink.validation.RegisterGroup;
 import com.kitchen.sink.validation.UpdateGroup;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Null;
+import jakarta.validation.constraints.*;
 
 import java.util.Set;
 
@@ -22,12 +21,17 @@ public record UserReqDTO(
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "email cannot be blank")
         String email,
 
+        @NotBlank(message = "Phone number is mandatory", groups = {CreateGroup.class, UpdateGroup.class})
+        @Size(min = 10, max = 12, message = "Phone number must be between 10 and 12 digits", groups = {CreateGroup.class, UpdateGroup.class})
+        @Pattern(regexp = "\\d{10,12}", message = "Phone number must be numeric", groups = {CreateGroup.class, UpdateGroup.class})
+        String phoneNumber,
+
         @NotBlank(groups = {CreateGroup.class}, message = "password cannot be blank")
         @Null(groups = {UpdateGroup.class}, message = "password must be null for Update operation")
         String password,
 
         Set<UserRole> roles,
-        @NotNull(groups = {CreateGroup.class, UpdateGroup.class}, message = "status cannot be null")
+        @NotNull(groups = {CreateGroup.class}, message = "status cannot be null")
         UserStatus status
 ) {
 }
