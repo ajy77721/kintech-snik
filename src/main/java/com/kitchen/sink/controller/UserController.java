@@ -122,7 +122,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
 
     @GetMapping()
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
     public ResponseEntity<APIResponseDTO<List<UserResV1DTO>>> getAll() {
         return ResponseEntity.ok().body(APIResponseDTO.<List<UserResV1DTO>>builder().status(true).data(userService.getAllUsers()).build());
     }

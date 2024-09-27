@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -47,8 +49,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<APIResponseDTO<?>> handleUsernameNotFoundException(UsernameNotFoundException ex) {
         log.error("Username Not Found Exception", ex);
-        return new ResponseEntity<>(buildErrorResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(buildErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED);
     }
+
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<APIResponseDTO<?>> handleNoHandlerFound(NoHandlerFoundException ex) {
@@ -66,6 +69,17 @@ public class GlobalExceptionHandler {
         log.error("Access Denied Exception", ex);
         return new ResponseEntity<>(buildErrorResponse("You do not have permission to access this functionality. Please contact the Administrator."), HttpStatus.FORBIDDEN);
     }
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleLockedException(LockedException ex) {
+        log.error("Locked Exception", ex);
+        return new ResponseEntity<>(buildErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED);
+    }
+    @ExceptionHandler(SessionAuthenticationException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleSessionAuthenticationException(SessionAuthenticationException ex) {
+        log.error("Session Authentication Exception", ex);
+        return new ResponseEntity<>(buildErrorResponse(ex.getMessage()), HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<APIResponseDTO<?>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         List<String> errors = new ArrayList<>();

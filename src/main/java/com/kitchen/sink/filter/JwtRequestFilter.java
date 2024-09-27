@@ -1,6 +1,8 @@
 package com.kitchen.sink.filter;
 
 import com.kitchen.sink.entity.UserSession;
+import com.kitchen.sink.enums.UserRole;
+import com.kitchen.sink.exception.UserRolesModifiedException;
 import com.kitchen.sink.repo.UserSessionRepository;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
 import com.kitchen.sink.utils.JwtUtil;
@@ -9,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,7 +21,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
 import static com.kitchen.sink.constants.JWTConstant.AUTHORIZATION;
 import static com.kitchen.sink.constants.JWTConstant.BEARER;
 
@@ -50,7 +52,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
                UserSession userSession= userSessionRepository.findByUsername(username);
                if (userSession==null || !userSession.getToken().equals(jwt)){
-                   throw new SessionAuthenticationException("Token is not valid or expired");
+                   throw new InsufficientAuthenticationException("Token is not valid or expired");
+               }
+               if (!jwtUtil.validateRoles(jwt, userDetails.getAuthorities())){
+                   throw new UserRolesModifiedException("User roles Modified, Please login again");
                }
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());

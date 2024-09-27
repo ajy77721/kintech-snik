@@ -8,15 +8,14 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.kitchen.sink.constants.JWTConstant.ANONYMOUS_USER;
 import static com.kitchen.sink.constants.JWTConstant.ROLES;
@@ -61,6 +60,17 @@ public class JwtUtil {
     public Boolean validateToken(String token, String email) {
         final String extractEmail = extractUsername(token);
         return (extractEmail.equals(email) && !isTokenExpired(token));
+    }
+
+    public boolean validateRoles(String token, Collection<? extends GrantedAuthority> roles) {
+        Set<String> existingRoles = roles.stream().map(va->va.getAuthority()).collect(Collectors.toSet());
+        Set<String> userRoles = extractRoles(token);
+        return userRoles.containsAll(existingRoles);
+    }
+
+    private Set<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        return new HashSet<>(claims.get(ROLES, List.class));
     }
 
 

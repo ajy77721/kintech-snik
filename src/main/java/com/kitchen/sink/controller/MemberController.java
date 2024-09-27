@@ -146,7 +146,7 @@ public class MemberController {
 
     })
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','USER','VISITOR')")
     public ResponseEntity<APIResponseDTO<List<MemberDTO>>> getAllMembers() {
         return ResponseEntity.ok().body(APIResponseDTO.<List<MemberDTO>>builder().status(true).data(memberService.getAllMembers()).build());
     }

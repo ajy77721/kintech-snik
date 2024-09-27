@@ -4,7 +4,9 @@ package com.kitchen.sink.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchen.sink.dto.APIResponseDTO;
 import com.kitchen.sink.dto.ErrorDTO;
+import com.kitchen.sink.exception.UserRolesModifiedException;
 import com.kitchen.sink.filter.JwtRequestFilter;
+import com.kitchen.sink.filter.TransformFilter;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -22,6 +25,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -35,6 +39,8 @@ public class SecurityConfig {
 
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
+    @Autowired
+    private TransformFilter transformFilter;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -62,17 +68,34 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .csrf(AbstractHttpConfigurer::disable)
-                .authenticationProvider(authenticationProvider()).addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(transformFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((request, response, authException) ->
                         {
-                            APIResponseDTO<ErrorDTO> apiResponse = APIResponseDTO.<ErrorDTO>builder()
-                                    .status(false)
-                                    .error(ErrorDTO.builder()
-                                            .message(authException.getMessage().equals("Access Denied")?"You do not have permission to access this functionality. Please contact the Administrator." : getErrorMessages()).build()).build();
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            APIResponseDTO<ErrorDTO> apiResponse;
+
+                            if (authException instanceof InsufficientAuthenticationException
+                            ) {
+                                apiResponse = APIResponseDTO.<ErrorDTO>builder()
+                                        .status(false)
+                                        .error(ErrorDTO.builder()
+                                                .message(authException.getMessage()).build()).build();
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
+                            } else {
+                                apiResponse = APIResponseDTO.<ErrorDTO>builder()
+                                        .status(false)
+                                        .error(ErrorDTO.builder()
+                                                .message(authException.getMessage().equals("Access Denied") ?
+                                                        "You do not have permission to access this functionality. Please contact the Administrator." :
+                                                        getErrorMessages()).build()).build();
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403 Forbidden
+                            }
+
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+
                         })
                 )
                 .build();

@@ -1,6 +1,7 @@
 package com.kitchen.sink.dto;
 
 import com.kitchen.sink.enums.UserRole;
+import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.validation.CreateGroup;
 import com.kitchen.sink.validation.UpdateGroup;
 import jakarta.validation.Valid;
@@ -25,5 +26,7 @@ public record UserDTO(
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "password cannot be blank")
         String password,
 
-        Set<UserRole> roles) {
+        Set<UserRole> roles,
+        UserStatus  status
+) {
 }

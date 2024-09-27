@@ -4,12 +4,15 @@ import com.kitchen.sink.config.MasterTokenConfig;
 import com.kitchen.sink.dto.UserDTO;
 import com.kitchen.sink.dto.UserDetailsDTO;
 import com.kitchen.sink.entity.User;
+import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,6 +32,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         if (user == null) {
             log.error("User not found with username: {}", email);
             throw new UsernameNotFoundException("User not found with username: " + email);
+        }
+        if (user.status().equals(UserStatus.BLOCKED)){
+            log.error("User is blocked: {}", email);
+            throw new LockedException("User is blocked: " + email+" Please contact support");
         }
         log.info("User found with user: {}", user);
         return new UserDetailsDTO(user);

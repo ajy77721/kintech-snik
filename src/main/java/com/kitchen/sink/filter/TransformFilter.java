@@ -1,12 +1,14 @@
 package com.kitchen.sink.filter;
 
 import jakarta.servlet.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.springframework.web.util.WebUtils;
@@ -23,18 +25,48 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
-@Order(1)
 @Slf4j
-public class TransformFilter implements Filter {
+public class TransformFilter  extends OncePerRequestFilter {
     private static String hostIpAddress;
-    @Override
-    public void init(FilterConfig filterConfig) {
+
+    // Helper methods for extracting request and response data
+    private  String getHeaders(HttpServletRequest request) {
+        Enumeration<String> headerNames = request.getHeaderNames();
+        String headers = Collections.list(headerNames).stream()
+                .map(headerName -> headerName + ": " + request.getHeader(headerName))
+                .collect(Collectors.joining(", "));
+        return headers;
     }
 
-    @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
-            throws IOException, ServletException {
+    private  String getRequestData(final HttpServletRequest request) throws UnsupportedEncodingException {
+        String payload = null;
+        ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+        if (wrapper != null) {
+            byte[] buf = wrapper.getContentAsByteArray();
+            if (buf.length > 0) {
+                payload = new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
+            }
+        }
+        return payload;
+    }
 
+    private  String getResponseData(final HttpServletResponse response) throws IOException {
+        String payload = null;
+        ContentCachingResponseWrapper wrapper =
+                WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
+        if (wrapper != null) {
+            byte[] buf = wrapper.getContentAsByteArray();
+            if (buf.length > 0) {
+                payload = new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
+                wrapper.copyBodyToResponse();
+            }
+        }
+        return payload;
+    }
+
+
+    @Override
+    protected void doFilterInternal( HttpServletRequest servletRequest, HttpServletResponse servletResponse, FilterChain filterChain) throws ServletException, IOException {
         if (servletRequest instanceof HttpServletRequest request
                 && servletResponse instanceof HttpServletResponse response) {
 
@@ -42,7 +74,7 @@ public class TransformFilter implements Filter {
             HttpServletResponse responseToCache = new ContentCachingResponseWrapper(response);
 
             // Proceed with the next filter
-            chain.doFilter(requestToCache, responseToCache);
+            filterChain.doFilter(servletRequest, servletResponse);
 
             // Capture details
             String upstreamIp = requestToCache.getRemoteAddr();
@@ -67,47 +99,9 @@ public class TransformFilter implements Filter {
             // Log the data using the toString method
             log.info(logData.toFormatString());
         } else {
-            chain.doFilter(servletRequest, servletResponse);
+
+        filterChain.doFilter(servletRequest, servletResponse);
         }
-    }
-
-    // Helper methods for extracting request and response data
-    private static String getHeaders(HttpServletRequest request) {
-        Enumeration<String> headerNames = request.getHeaderNames();
-        String headers = Collections.list(headerNames).stream()
-                .map(headerName -> headerName + ": " + request.getHeader(headerName))
-                .collect(Collectors.joining(", "));
-        return headers;
-    }
-
-    private static String getRequestData(final HttpServletRequest request) throws UnsupportedEncodingException {
-        String payload = null;
-        ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
-        if (wrapper != null) {
-            byte[] buf = wrapper.getContentAsByteArray();
-            if (buf.length > 0) {
-                payload = new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
-            }
-        }
-        return payload;
-    }
-
-    private static String getResponseData(final HttpServletResponse response) throws IOException {
-        String payload = null;
-        ContentCachingResponseWrapper wrapper =
-                WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
-        if (wrapper != null) {
-            byte[] buf = wrapper.getContentAsByteArray();
-            if (buf.length > 0) {
-                payload = new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
-                wrapper.copyBodyToResponse();
-            }
-        }
-        return payload;
-    }
-
-    @Override
-    public void destroy() {
     }
 
     // Inner class to hold the fields
