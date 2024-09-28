@@ -1,11 +1,7 @@
 package com.kitchen.sink.controller;
 
 import com.kitchen.sink.dto.*;
-import com.kitchen.sink.entity.UserSession;
-import com.kitchen.sink.repo.UserSessionRepository;
 import com.kitchen.sink.service.AuthService;
-import com.kitchen.sink.service.UserService;
-import com.kitchen.sink.utils.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,10 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 

@@ -4,7 +4,6 @@ package com.kitchen.sink.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchen.sink.dto.APIResponseDTO;
 import com.kitchen.sink.dto.ErrorDTO;
-import com.kitchen.sink.exception.UserRolesModifiedException;
 import com.kitchen.sink.filter.JwtRequestFilter;
 import com.kitchen.sink.filter.TransformFilter;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
@@ -14,7 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -31,6 +29,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import static com.kitchen.sink.constants.JWTConstant.ACCESS_DENIED;
+import static com.kitchen.sink.constants.JWTConstant.ACCESS_DENIED_MESSAGE;
 
 @Configuration
 @EnableWebSecurity
@@ -87,12 +88,11 @@ public class SecurityConfig {
                                 apiResponse = APIResponseDTO.<ErrorDTO>builder()
                                         .status(false)
                                         .error(ErrorDTO.builder()
-                                                .message(authException.getMessage().equals("Access Denied") ?
-                                                        "You do not have permission to access this functionality. Please contact the Administrator." :
-                                                        getErrorMessages()).build()).build();
+                                                .message(authException.getMessage().equals(ACCESS_DENIED) ?
+                                                        ACCESS_DENIED_MESSAGE:
+                                                        authException.getMessage()).build()).build();
                                 response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403 Forbidden
                             }
-
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
 
@@ -100,10 +100,6 @@ public class SecurityConfig {
                 )
                 .build();
     }
-    private String getErrorMessages() {
-        return "Invalid username or password";
-    }
-
 
     @Bean
     public AuthenticationProvider authenticationProvider() {

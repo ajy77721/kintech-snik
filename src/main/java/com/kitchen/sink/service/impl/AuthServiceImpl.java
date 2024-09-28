@@ -5,15 +5,15 @@ import com.kitchen.sink.entity.UserSession;
 import com.kitchen.sink.repo.UserSessionRepository;
 import com.kitchen.sink.service.AuthService;
 import com.kitchen.sink.service.UserService;
-import com.kitchen.sink.utils.JwtUtil;
+import com.kitchen.sink.utils.JWTUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import static com.kitchen.sink.constants.JWTConstant.*;
 
 @Slf4j
 @Service
@@ -22,7 +22,7 @@ public class AuthServiceImpl implements AuthService {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JWTUtils JWTUtils;
 
     @Autowired
     private UserService userService;
@@ -34,14 +34,11 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
         );
-        if (!authentication.isAuthenticated()) {
-            throw new UsernameNotFoundException("invalid user request !");
-        }
         UserDTO user = userService.getUserDTOByEmail(loginRequest.email());
         UserSession byUsername = userSessionRepository.findByUsername(user.email());
         if (byUsername != null) {
-            if (jwtUtil.validateToken(byUsername.getToken(), user.email())) {
-                if (jwtUtil.validateRoles(byUsername.getToken(), authentication.getAuthorities())) {
+            if (JWTUtils.validateToken(byUsername.getToken(), user.email())) {
+                if (JWTUtils.validateRoles(byUsername.getToken(), authentication.getAuthorities())) {
                 return LoginResponseDTO.builder()
                         .token(byUsername.getToken())
                         .email(user.email()).build();
@@ -50,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
             userSessionRepository.deleteById(byUsername.getId());
         }
 
-        String jwt = jwtUtil.generateToken(user.email(), user.roles());
+        String jwt = JWTUtils.generateToken(user.email(), user.roles());
         userSessionRepository.save(UserSession.builder().username(user.email()).token(jwt).build());
         return LoginResponseDTO.builder()
                 .token(jwt)
@@ -61,11 +58,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LogoutResponseDTO logout(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(BEARER) ){
             String jwt = token.substring(7);
             userSessionRepository.deleteByToken(jwt);
         }
-        return LogoutResponseDTO.builder().message("Logout success").build();
+        return LogoutResponseDTO.builder().message(LOGOUT_SUCCESS_MESSAGE).build();
 
     }
 }

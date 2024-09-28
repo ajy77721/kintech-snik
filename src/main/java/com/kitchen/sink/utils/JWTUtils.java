@@ -21,14 +21,13 @@ import static com.kitchen.sink.constants.JWTConstant.ANONYMOUS_USER;
 import static com.kitchen.sink.constants.JWTConstant.ROLES;
 
 @Component
-public class JwtUtil {
+public class JWTUtils {
 
     @Value("${jwt.secret.key}")
-    private String secretKey = "your_secret_key";
+    private String secretKey = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
     // Use a strong secret key
     @Value("${jwt.expiration.time}")
     private long expirationTime = 1000 * 60 * 60;// 1 hour
-    public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
 
 
     public String extractUsername(String token) {
@@ -90,7 +89,7 @@ public class JwtUtil {
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

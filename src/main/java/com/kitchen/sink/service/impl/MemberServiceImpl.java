@@ -14,7 +14,7 @@ import com.kitchen.sink.exception.ValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.MemberService;
-import com.kitchen.sink.utils.JwtUtil;
+import com.kitchen.sink.utils.JWTUtils;
 import com.kitchen.sink.utils.ObjectConvertor;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private ObjectConvertor convertor;
     @Autowired
-    private JwtUtil jwtUtil;
+    private JWTUtils JWTUtils;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -50,7 +50,7 @@ public class MemberServiceImpl implements MemberService {
         log.info("Saving Member: {}", memberReqDTO);
         Member member = convertor.convert(memberReqDTO, Member.class);
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-        String createBy = jwtUtil.getEmail();
+        String createBy = JWTUtils.getEmail();
         if (createBy == null) {
             createBy = member.getEmail();
         }
@@ -87,7 +87,7 @@ public class MemberServiceImpl implements MemberService {
               throw new ValidationException("Member is already approved/declined, cannot update", HttpStatus.CONFLICT);
         }
         Member member = convertor.convert(memberReqDTO, Member.class);
-        String updatedBy = jwtUtil.getEmail();
+        String updatedBy = JWTUtils.getEmail();
         member.setLastModifiedBy(updatedBy);
         member.setLastModifiedTime(LocalDateTime.now());
         if (member.getStatus() == null) {
@@ -138,7 +138,7 @@ public class MemberServiceImpl implements MemberService {
         }
         member.setStatus(status);
         member.setApprovedTime(LocalDateTime.now());
-        member.setApprovedBy(jwtUtil.getEmail());
+        member.setApprovedBy(JWTUtils.getEmail());
         memberRepository.save(member);
         if (status.equals(MemberStatus.APPROVED)) {
             User user = createNewUser(userRoles, member);
@@ -161,7 +161,7 @@ public class MemberServiceImpl implements MemberService {
 
         user.setCreatedBy(member.getCreatedBy());
         user.setCreatedTime(member.getCreatedTime());
-        user.setLastModifiedBy(jwtUtil.getEmail());
+        user.setLastModifiedBy(JWTUtils.getEmail());
         user.setLastModifiedTime(LocalDateTime.now());
         return user;
     }

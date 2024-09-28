@@ -1,11 +1,10 @@
 package com.kitchen.sink.filter;
 
 import com.kitchen.sink.entity.UserSession;
-import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.exception.UserRolesModifiedException;
 import com.kitchen.sink.repo.UserSessionRepository;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
-import com.kitchen.sink.utils.JwtUtil;
+import com.kitchen.sink.utils.JWTUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,7 +15,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,7 +26,7 @@ import static com.kitchen.sink.constants.JWTConstant.BEARER;
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JWTUtils JWTUtils;
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
     @Autowired
@@ -44,17 +42,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith(BEARER)) {
             jwt = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(jwt);
+            username = JWTUtils.extractUsername(jwt);
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
+            if (JWTUtils.validateToken(jwt, userDetails.getUsername())) {
                UserSession userSession= userSessionRepository.findByUsername(username);
                if (userSession==null || !userSession.getToken().equals(jwt)){
                    throw new InsufficientAuthenticationException("Token is not valid or expired");
                }
-               if (!jwtUtil.validateRoles(jwt, userDetails.getAuthorities())){
+               if (!JWTUtils.validateRoles(jwt, userDetails.getAuthorities())){
                    throw new UserRolesModifiedException("User roles Modified, Please login again");
                }
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

@@ -16,7 +16,7 @@ import com.kitchen.sink.exception.ValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.UserService;
-import com.kitchen.sink.utils.JwtUtil;
+import com.kitchen.sink.utils.JWTUtils;
 import com.kitchen.sink.utils.ObjectConvertor;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private JwtUtil jwtUtil;
+    private JWTUtils JWTUtils;
     @Autowired
     private MemberRepository memberRepository;
 
@@ -52,7 +52,7 @@ public class UserServiceImpl implements UserService {
         validateUserRoleAtLeastOneRole(userDTO);
         User user = convertor.convert(userDTO, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        String createdBy = jwtUtil.getEmail();
+        String createdBy = JWTUtils.getEmail();
         if (createdBy == null) {
             createdBy = user.getEmail();
         }
@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
         userToBeUpdate.setPassword(user.getPassword());
         userToBeUpdate.setCreatedTime(user.getCreatedTime());
         userToBeUpdate.setCreatedBy(user.getCreatedBy());
-        String updateBy = jwtUtil.getEmail();
+        String updateBy = JWTUtils.getEmail();
         if (updateBy == null) {
             updateBy = user.getEmail();
         }
@@ -151,14 +151,14 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + resetPasswordReqDTO.id(), HttpStatus.BAD_REQUEST));
         user.setPassword(passwordEncoder.encode(resetPasswordReqDTO.password()));
         user.setLastModifiedTime(LocalDateTime.now());
-        user.setLastModifiedBy(jwtUtil.getEmail());
+        user.setLastModifiedBy(JWTUtils.getEmail());
         userRepository.save(user);
     }
 
     @Override
     @Transactional
     public void changePassword(ChangePasswordResDTO changePasswordResDTO) {
-        String currentUser = jwtUtil.getEmail();
+        String currentUser = JWTUtils.getEmail();
         User user = userRepository.findByEmail(currentUser)
                 .orElseThrow(() -> new NotFoundException("User not found with Email: " + currentUser, HttpStatus.BAD_REQUEST));
         if (!passwordEncoder.matches(changePasswordResDTO.currentPassword(), user.getPassword())) {
