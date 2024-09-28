@@ -27,6 +27,7 @@ public record MemberReqDTO(
 
         @NotBlank(message = "password  is mandatory", groups = {CreateGroup.class, RegisterGroup.class})
         @Null(message ="password should be null" , groups = {UpdateGroup.class})
+        @Size(min = 6, max = 20, message = "password must be between 6 and 20 characters",groups = {CreateGroup.class,RegisterGroup.class})
         String password,
 
         @Null(message ="memberStatus should be null" ,groups ={ RegisterGroup.class,CreateGroup.class})

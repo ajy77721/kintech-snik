@@ -26,11 +26,10 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
-public class TransformFilter  extends OncePerRequestFilter {
+public class TransformFilter extends OncePerRequestFilter {
     private static String hostIpAddress;
 
-    // Helper methods for extracting request and response data
-    private  String getHeaders(HttpServletRequest request) {
+    private String getHeaders(HttpServletRequest request) {
         Enumeration<String> headerNames = request.getHeaderNames();
         String headers = Collections.list(headerNames).stream()
                 .map(headerName -> headerName + ": " + request.getHeader(headerName))
@@ -38,7 +37,7 @@ public class TransformFilter  extends OncePerRequestFilter {
         return headers;
     }
 
-    private  String getRequestData(final HttpServletRequest request) throws UnsupportedEncodingException {
+    private String getRequestData(final HttpServletRequest request) throws UnsupportedEncodingException {
         String payload = null;
         ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
         if (wrapper != null) {
@@ -50,61 +49,54 @@ public class TransformFilter  extends OncePerRequestFilter {
         return payload;
     }
 
-    private  String getResponseData(final HttpServletResponse response) throws IOException {
+    private String getResponseData(final HttpServletResponse response) throws IOException {
         String payload = null;
-        ContentCachingResponseWrapper wrapper =
-                WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
+        ContentCachingResponseWrapper wrapper = WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
         if (wrapper != null) {
             byte[] buf = wrapper.getContentAsByteArray();
             if (buf.length > 0) {
                 payload = new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
-                wrapper.copyBodyToResponse();
             }
+            wrapper.copyBodyToResponse(); // Ensure response body is written back to the client
         }
         return payload;
     }
 
-
     @Override
-    protected void doFilterInternal( HttpServletRequest servletRequest, HttpServletResponse servletResponse, FilterChain filterChain) throws ServletException, IOException {
-        if (servletRequest instanceof HttpServletRequest request
-                && servletResponse instanceof HttpServletResponse response) {
+    protected void doFilterInternal(HttpServletRequest servletRequest, HttpServletResponse servletResponse, FilterChain filterChain) throws ServletException, IOException {
+        ContentCachingRequestWrapper requestWrapper = new ContentCachingRequestWrapper(servletRequest);
+        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(servletResponse);
 
-            HttpServletRequest requestToCache = new ContentCachingRequestWrapper(request);
-            HttpServletResponse responseToCache = new ContentCachingResponseWrapper(response);
+        // Proceed with the next filter
+        filterChain.doFilter(requestWrapper, responseWrapper);
 
-            // Proceed with the next filter
-            filterChain.doFilter(servletRequest, servletResponse);
+        // Capture details
+        String upstreamIp = requestWrapper.getRemoteAddr();
+        String hostIp = requestWrapper.getLocalAddr();
+        String headers = getHeaders(requestWrapper);
+        String url = requestWrapper.getRequestURL().toString();
+        String uri = requestWrapper.getRequestURI();
+        String queryParams = requestWrapper.getQueryString() != null ? requestWrapper.getQueryString() : "";
+        Map<String, String[]> pathVariables = requestWrapper.getParameterMap();
+        String requestBody = getRequestData(requestWrapper);
+        int requestBodySize = requestBody != null ? requestBody.length() : 0;
+        String responseBody = getResponseData(responseWrapper);
+        int responseBodySize = responseBody != null ? responseBody.length() : 0;
+        int statusCode = responseWrapper.getStatus();
 
-            // Capture details
-            String upstreamIp = requestToCache.getRemoteAddr();
-            String hostIp = requestToCache.getLocalAddr();
-            String headers = getHeaders(requestToCache);
-            String url = requestToCache.getRequestURL().toString();
-            String uri = requestToCache.getRequestURI();
-            String queryParams = requestToCache.getQueryString() != null ? requestToCache.getQueryString() : "";
-            Map<String, String[]> pathVariables = requestToCache.getParameterMap();
-            String requestBody = getRequestData(requestToCache);
-            int requestBodySize = requestBody != null ? requestBody.length() : 0;
-            String responseBody = getResponseData(responseToCache);
-            int responseBodySize = responseBody != null ? responseBody.length() : 0;
-            int statusCode = responseToCache.getStatus();
+        // Create the RequestResponseLog object
+        RequestResponseLog logData = new RequestResponseLog(
+                upstreamIp, hostIp, headers, url, uri, queryParams, pathVariables,
+                requestBody, requestBodySize, responseBody, responseBodySize, statusCode
+        );
 
-            // Create the RequestResponseLog object
-            RequestResponseLog logData = new RequestResponseLog(
-                    upstreamIp, hostIp, headers, url, uri, queryParams, pathVariables,
-                    requestBody, requestBodySize, responseBody, responseBodySize, statusCode
-            );
+        // Log the data using the toString method
+        log.info(logData.toFormatString());
 
-            // Log the data using the toString method
-            log.info(logData.toFormatString());
-        } else {
-
-        filterChain.doFilter(servletRequest, servletResponse);
-        }
+        // Write the response back to the original response
+        responseWrapper.copyBodyToResponse();
     }
 
-    // Inner class to hold the fields
     @Getter
     @AllArgsConstructor
     @ToString
@@ -122,7 +114,6 @@ public class TransformFilter  extends OncePerRequestFilter {
         private final int responseBodySize;
         private final int statusCode;
 
-
         public String toFormatString() {
             return String.format(
                     "RequestResponseLog {\n" +
@@ -139,28 +130,23 @@ public class TransformFilter  extends OncePerRequestFilter {
                             "  Response Body Size: %d bytes\n" +
                             "  HTTP Status Code: %d\n" +
                             "}",
-                    upstreamIp, hostIp, headers, url, uri, queryParams, formatedString(pathVariables),
+                    upstreamIp, hostIp, headers, url, uri, queryParams, formattedString(pathVariables),
                     requestBody, requestBodySize, responseBody, responseBodySize, statusCode
             );
         }
 
-        private String formatedString(Map<String, String[]> pathVariables) {
+        private String formattedString(Map<String, String[]> pathVariables) {
             return pathVariables.entrySet().stream()
                     .map(entry -> entry.getKey() + ": " + String.join(", ", entry.getValue()))
                     .collect(Collectors.joining(", "));
         }
     }
 
-    public  String getHostIpAddress()
-    {
-        if (hostIpAddress == null)
-        {
-            try
-            {
+    public String getHostIpAddress() {
+        if (hostIpAddress == null) {
+            try {
                 hostIpAddress = InetAddress.getLocalHost().getHostAddress();
-            }
-            catch (UnknownHostException e)
-            {
+            } catch (UnknownHostException e) {
                 log.error("Error while populating hostIpAddress", e);
             }
         }

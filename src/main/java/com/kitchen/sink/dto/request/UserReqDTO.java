@@ -28,6 +28,7 @@ public record UserReqDTO(
 
         @NotBlank(groups = {CreateGroup.class}, message = "password cannot be blank")
         @Null(groups = {UpdateGroup.class}, message = "password must be null for Update operation")
+        @Size(min = 6, max = 20, message = "password must be between 6 and 20 characters",groups = {CreateGroup.class})
         String password,
 
         Set<UserRole> roles,
