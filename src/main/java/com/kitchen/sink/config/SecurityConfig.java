@@ -62,7 +62,7 @@ public class SecurityConfig {
                        // .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .requestMatchers("/auth/login", "/auth/logout").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/member/register/").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/member/register").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
