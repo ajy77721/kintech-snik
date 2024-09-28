@@ -8,6 +8,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.authorization.ExpressionAuthorizationDecision;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.validation.FieldError;
@@ -67,6 +69,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<APIResponseDTO<?>> handleAccessDeniedException(AccessDeniedException ex) {
         log.error("Access Denied Exception", ex);
+          if (ex instanceof AuthorizationDeniedException authorizationDeniedException){
+              if(authorizationDeniedException.getAuthorizationResult() instanceof ExpressionAuthorizationDecision expressionAuthorizationDecision){
+                 if( expressionAuthorizationDecision.getExpression().getExpressionString().contains("hasAnyAuthority")){
+                  String expression=expressionAuthorizationDecision.getExpression().getExpressionString();
+                    String[] roles = expression.replace("hasAnyAuthority('", "").replace("')", "").split("', '");
+                    return new ResponseEntity<>(buildErrorResponse("You do not have permission to access this functionality. Please contact the Administrator. Required roles: "+String.join(",",roles)), HttpStatus.FORBIDDEN);
+                 }
+              }
+          }
         return new ResponseEntity<>(buildErrorResponse("You do not have permission to access this functionality. Please contact the Administrator."), HttpStatus.FORBIDDEN);
     }
     @ExceptionHandler(LockedException.class)

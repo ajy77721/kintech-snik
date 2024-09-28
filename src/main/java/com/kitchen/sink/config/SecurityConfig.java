@@ -1,53 +1,34 @@
 package com.kitchen.sink.config;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchen.sink.dto.APIResponseDTO;
-import com.kitchen.sink.dto.ErrorDTO;
+import com.kitchen.sink.exception.SinkAccessDeniedHandler;
+import com.kitchen.sink.exception.SinkAuthenticationEntryPoint;
 import com.kitchen.sink.filter.JwtRequestFilter;
 import com.kitchen.sink.filter.TransformFilter;
 import com.kitchen.sink.service.impl.UserDetailsServiceImpl;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import static com.kitchen.sink.constants.JWTConstant.ACCESS_DENIED;
-import static com.kitchen.sink.constants.JWTConstant.ACCESS_DENIED_MESSAGE;
-
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
+//@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-
-    @Autowired
-    private JwtRequestFilter jwtRequestFilter;
-    @Autowired
-    private TransformFilter transformFilter;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private CorsConfigurationSource corsConfigurationSource;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -55,7 +36,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource,
+                                                   TransformFilter transformFilter, JwtRequestFilter jwtRequestFilter,
+                                                   SinkAuthenticationEntryPoint sinkAuthenticationEntryPoint,
+                                                   SinkAccessDeniedHandler sinkAccessDeniedHandler,
+                                                   AuthenticationProvider authenticationProvider) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(auth -> auth
@@ -69,40 +54,18 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .csrf(AbstractHttpConfigurer::disable)
-                .authenticationProvider(authenticationProvider())
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(transformFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint((request, response, authException) ->
-                        {
-                            APIResponseDTO<ErrorDTO> apiResponse;
-
-                            if (authException instanceof InsufficientAuthenticationException
-                            ) {
-                                apiResponse = APIResponseDTO.<ErrorDTO>builder()
-                                        .status(false)
-                                        .error(ErrorDTO.builder()
-                                                .message(authException.getMessage()).build()).build();
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
-                            } else {
-                                apiResponse = APIResponseDTO.<ErrorDTO>builder()
-                                        .status(false)
-                                        .error(ErrorDTO.builder()
-                                                .message(authException.getMessage().equals(ACCESS_DENIED) ?
-                                                        ACCESS_DENIED_MESSAGE:
-                                                        authException.getMessage()).build()).build();
-                                response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403 Forbidden
-                            }
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
-
-                        })
+                        .authenticationEntryPoint(sinkAuthenticationEntryPoint)
+                        .accessDeniedHandler(sinkAccessDeniedHandler)
                 )
                 .build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
+    public AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(userDetailsService());
         authenticationProvider.setPasswordEncoder(passwordEncoder);
