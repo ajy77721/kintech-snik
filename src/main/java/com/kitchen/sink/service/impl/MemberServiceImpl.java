@@ -51,9 +51,6 @@ public class MemberServiceImpl implements MemberService {
         Member member = convertor.convert(memberReqDTO, Member.class);
         member.setPassword(passwordEncoder.encode(member.getPassword()));
         String createBy = JWTUtils.getEmail();
-        if (createBy == null) {
-            createBy = member.getEmail();
-        }
         member.setCreatedBy(createBy);
         member.setCreatedTime(LocalDateTime.now());
         if (member.getStatus() == null) {

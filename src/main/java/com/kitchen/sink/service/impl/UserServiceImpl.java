@@ -53,9 +53,6 @@ public class UserServiceImpl implements UserService {
         User user = convertor.convert(userDTO, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         String createdBy = JWTUtils.getEmail();
-        if (createdBy == null) {
-            createdBy = user.getEmail();
-        }
         user.setCreatedBy(createdBy);
         user.setCreatedTime(LocalDateTime.now());
         user.setLastModifiedBy(createdBy);
