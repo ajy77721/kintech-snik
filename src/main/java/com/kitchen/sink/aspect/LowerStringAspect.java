@@ -1,5 +1,6 @@
-package com.kitchen.sink.validation;
+package com.kitchen.sink.aspect;
 
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -10,6 +11,7 @@ import java.lang.reflect.Method;
 
 @Aspect
 @Component
+@Slf4j
 public class LowerStringAspect {
 
     @Around("execution(* *(.., @LowerString (*), ..))")

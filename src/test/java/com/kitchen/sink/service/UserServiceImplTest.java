@@ -17,7 +17,7 @@ import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.impl.UserServiceImpl;
 import com.kitchen.sink.utils.JWTUtils;
-import com.kitchen.sink.utils.ObjectConvertor;
+import com.kitchen.sink.utils.UniversalConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +43,7 @@ class UserServiceImplTest {
     private UserRepository userRepository;
 
     @Mock
-    private ObjectConvertor convertor;
+    private UniversalConverter convertor;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -378,7 +378,7 @@ class UserServiceImplTest {
         when(userRepository.findById(resetPasswordReqDTO.id())).thenReturn(Optional.empty());
 
         NotFoundException exception = assertThrows(NotFoundException.class, () -> userService.resetPassword(resetPasswordReqDTO));
-        assertEquals("User not found with id: " + resetPasswordReqDTO.id(), exception.getMessage());
+        assertEquals("User not found with ID: " + resetPasswordReqDTO.id(), exception.getMessage());
     }
     @Test
     void testChangePassword_Successful() {

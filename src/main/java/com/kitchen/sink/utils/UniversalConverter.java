@@ -1,9 +1,6 @@
 package com.kitchen.sink.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchen.sink.entity.Member;
-import com.kitchen.sink.entity.User;
-import com.kitchen.sink.entity.UserSession;
 import com.kitchen.sink.exception.ObjectMappingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class ObjectConvertor {
+public class UniversalConverter {
     @Autowired
     @Qualifier("dtoMapper")
     private ObjectMapper dtoMapper;
@@ -22,21 +19,7 @@ public class ObjectConvertor {
             if (obj == null) {
                 return null;
             }
-            T t = dtoMapper.convertValue(obj, clazz);
-//            if(t instanceof User user){
-//                if(user.getEmail() != null){
-//                    user.setEmail(user.getEmail().toLowerCase());
-//                }
-//            } else if (t instanceof UserSession userSession){
-//                if(userSession.getEmail() != null){
-//                    userSession.setEmail(userSession.getEmail().toLowerCase());
-//                }
-//            }else if (t instanceof Member member){
-//                    if(member.getEmail() != null){
-//                        member.setEmail(member.getEmail().toLowerCase());
-//                    }
-//                }
-            return t;
+           return dtoMapper.convertValue(obj, clazz);
 
         } catch (Exception e) {
             log.error("Error converting object", e);

@@ -1,7 +1,7 @@
 package com.kitchen.sink.repo;
 
 import com.kitchen.sink.entity.User;
-import com.kitchen.sink.validation.LowerString;
+import com.kitchen.sink.aspect.LowerString;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;

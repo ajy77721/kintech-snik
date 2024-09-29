@@ -24,11 +24,12 @@ import static com.kitchen.sink.constants.JWTConstant.LOGOUT_SUCCESS_MESSAGE;
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
+
     @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JWTUtils JWTUtils;
+    private JWTUtils jwtUtils;
 
     @Autowired
     private UserService userService;
@@ -38,44 +39,61 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponseDTO login(LoginRequestDTO loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
-        );
+        log.info("Attempting to authenticate user with email: {}", loginRequest.email());
+        Authentication authentication = authenticateUser(loginRequest);
         UserDTO user = userService.getUserDTOByEmail(loginRequest.email());
-        Optional<UserSession> byUsernameOptional = userSessionRepository.findByEmail(user.email());
-        if (byUsernameOptional.isPresent()) {
-            UserSession byUsername = byUsernameOptional.get();
-            try {
+        Optional<UserSession> existingSession = userSessionRepository.findByEmail(user.email());
 
-                if (JWTUtils.validateToken(byUsername.getToken(), user.email())) {
-                    if (JWTUtils.validateRoles(byUsername.getToken(), authentication.getAuthorities())) {
-                        return LoginResponseDTO.builder()
-                                .token(byUsername.getToken())
-                                .email(user.email()).build();
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Error while validating token", e);
-                userSessionRepository.deleteById(byUsername.getId());
+        if (existingSession.isPresent()) {
+            UserSession userSession = existingSession.get();
+            if (isValidSession(userSession, user, authentication)) {
+                log.info("Existing valid session found for user: {}", user.email());
+                return buildLoginResponse(userSession.getToken(), user.email());
+            } else {
+                log.warn("Invalid session found for user: {}, deleting session", user.email());
+                userSessionRepository.deleteById(userSession.getId());
             }
         }
 
-        String jwt = JWTUtils.generateToken(user.email(), user.roles());
+        String jwt = jwtUtils.generateToken(user.email(), user.roles());
         userSessionRepository.save(UserSession.builder().email(user.email()).token(jwt).build());
-        return LoginResponseDTO.builder()
-                .token(jwt)
-                .email(user.email())
-                .build();
-
+        log.info("New session created for user: {}", user.email());
+        return buildLoginResponse(jwt, user.email());
     }
 
     @Override
     public LogoutResponseDTO logout(String token) {
+        log.info("Attempting to logout user with token: {}", token);
         if (token != null && token.startsWith(BEARER)) {
             String jwt = token.substring(7);
             userSessionRepository.deleteByToken(jwt);
+            log.info("User logged out successfully");
+        } else {
+            log.warn("Invalid token provided for logout");
         }
         return LogoutResponseDTO.builder().message(LOGOUT_SUCCESS_MESSAGE).build();
+    }
 
+    private Authentication authenticateUser(LoginRequestDTO loginRequest) {
+        return authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
+        );
+    }
+
+    private boolean isValidSession(UserSession userSession, UserDTO user, Authentication authentication) {
+        try {
+            return jwtUtils.validateToken(userSession.getToken(), user.email()) &&
+                    jwtUtils.validateRoles(userSession.getToken(), authentication.getAuthorities());
+        } catch (Exception e) {
+            log.error("Error while validating token for user: {}", user.email(), e);
+            return false;
+        }
+    }
+
+    private LoginResponseDTO buildLoginResponse(String token, String email) {
+        return LoginResponseDTO.builder()
+                .token(token)
+                .email(email)
+                .build();
     }
 }

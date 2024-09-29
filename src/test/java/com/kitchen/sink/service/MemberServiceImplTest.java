@@ -15,7 +15,7 @@ import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.impl.MemberServiceImpl;
 import com.kitchen.sink.utils.JWTUtils;
-import com.kitchen.sink.utils.ObjectConvertor;
+import com.kitchen.sink.utils.UniversalConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -44,7 +43,7 @@ class MemberServiceImplTest {
     private MemberRepository memberRepository;
 
     @Mock
-    private ObjectConvertor convertor;
+    private UniversalConverter convertor;
 
     @Mock
     private JWTUtils jwtUtils;
@@ -300,7 +299,7 @@ class MemberServiceImplTest {
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         ValidationException exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
-        assertEquals("Member is already declined,delete member and register", exception.getMessage());
+        assertEquals("Member is already declined, delete member and register", exception.getMessage());
     }
 
     @Test
@@ -313,7 +312,7 @@ class MemberServiceImplTest {
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         ValidationException exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of()));
-        assertEquals("At least one role is mandatory ", exception.getMessage());
+        assertEquals("At least one role is mandatory", exception.getMessage());
 
         exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.ADMIN)));
         assertEquals("VISITOR role is mandatory", exception.getMessage());
@@ -438,6 +437,6 @@ class MemberServiceImplTest {
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         ValidationException exception = assertThrows(ValidationException.class, () -> memberService.resetPassword(resetPasswordReqDTO));
-        assertEquals("Member is already declined,delete member and register", exception.getMessage());
+        assertEquals("Member is already declined, delete member and register", exception.getMessage());
     }
 }

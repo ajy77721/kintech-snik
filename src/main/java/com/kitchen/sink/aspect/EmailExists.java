@@ -1,4 +1,4 @@
-package com.kitchen.sink.validation;
+package com.kitchen.sink.aspect;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

@@ -1,4 +1,4 @@
-package com.kitchen.sink.validation;
+package com.kitchen.sink.aspect;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

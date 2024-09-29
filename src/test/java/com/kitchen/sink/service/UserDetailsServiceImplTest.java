@@ -53,7 +53,7 @@ class UserDetailsServiceImplTest {
         when(userService.getUserDTOByEmail(email)).thenReturn(null);
 
         UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(email));
-        assertEquals("User not found with username: " + email, exception.getMessage());
+        assertEquals("User not found with email: " + email, exception.getMessage());
     }
 
     @Test
@@ -64,6 +64,6 @@ class UserDetailsServiceImplTest {
         when(userService.getUserDTOByEmail(email)).thenReturn(userDTO);
 
         LockedException exception = assertThrows(LockedException.class, () -> userDetailsService.loadUserByUsername(email));
-        assertEquals("User is blocked: " + email + " Please contact support", exception.getMessage());
+        assertEquals("User is blocked: " + email + ". Please contact support.", exception.getMessage());
     }
 }

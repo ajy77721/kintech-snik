@@ -17,7 +17,7 @@ import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.UserService;
 import com.kitchen.sink.utils.JWTUtils;
-import com.kitchen.sink.utils.ObjectConvertor;
+import com.kitchen.sink.utils.UniversalConverter;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +37,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private ObjectConvertor convertor;
+    private UniversalConverter convertor;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private JWTUtils JWTUtils;
+    private JWTUtils jwtUtils;
     @Autowired
     private MemberRepository memberRepository;
 
@@ -52,11 +52,7 @@ public class UserServiceImpl implements UserService {
         validateUserRoleAtLeastOneRole(userDTO);
         User user = convertor.convert(userDTO, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        String createdBy = JWTUtils.getEmail();
-        user.setCreatedBy(createdBy);
-        user.setCreatedTime(LocalDateTime.now());
-        user.setLastModifiedBy(createdBy);
-        user.setLastModifiedTime(user.getCreatedTime());
+        setAuditFieldsForCreate(user);
         userRepository.save(user);
         log.info("User saved: {}", user);
         return convertor.convert(user, UserResDTO.class);
@@ -65,38 +61,35 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResDTO getUserById(String id) {
         log.info("Fetching User by ID: {}", id);
-        Optional<User> user = userRepository.findById(id);
-        if (user.isEmpty()) {
-            throw new NotFoundException("User not found with ID: " + id, HttpStatus.BAD_REQUEST);
-        }
-        return convertor.convert(user.get(), UserResDTO.class);
+        User user = findUserById(id);
+        log.info("User fetched: {}", user);
+        return convertor.convert(user, UserResDTO.class);
     }
 
     @Override
     public UserResDTO getUserByEmail(String email) {
         log.info("Fetching User by Email: {}", email);
-        Optional<User> user = userRepository.findByEmail(email);
-        if (user.isEmpty()) {
-            throw new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST);
-        }
-        return convertor.convert(user.get(), UserResDTO.class);
+        User user = findUserByEmail(email);
+        log.info("User fetched: {}", user);
+        return convertor.convert(user, UserResDTO.class);
     }
+
     @Override
     public UserDTO getUserDTOByEmail(String email) {
+        log.info("Fetching UserDTO by Email: {}", email);
         Optional<User> user = userRepository.findByEmail(email);
         if (user.isEmpty()) {
-           Member member= memberRepository.findByEmail(email)
-                   .orElseThrow(() ->
-                           new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
-            if(!member.getStatus().equals(MemberStatus.APPROVED)){
-                throw new ValidationException("Application on "+member.getStatus()+" status",HttpStatus.BAD_REQUEST);
+            Member member = memberRepository.findByEmail(email)
+                    .orElseThrow(() -> new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
+            if (!member.getStatus().equals(MemberStatus.APPROVED)) {
+                throw new ValidationException("Application on " + member.getStatus() + " status", HttpStatus.BAD_REQUEST);
             }
         }
-        if (user.isPresent()){
-        if (user.get().getStatus().equals(UserStatus.BLOCKED)){
-            throw new ValidationException("User is blocked",HttpStatus.BAD_REQUEST);
-        }
-        return convertor.convert(user.get(), UserDTO.class);
+        if (user.isPresent()) {
+            if (user.get().getStatus().equals(UserStatus.BLOCKED)) {
+                throw new ValidationException("User is blocked", HttpStatus.BAD_REQUEST);
+            }
+            return convertor.convert(user.get(), UserDTO.class);
         }
         return null;
     }
@@ -104,21 +97,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResDTO updateUser(UserReqDTO userDTO) {
-        validateUserRoleAtLeastOneRole(userDTO);
         log.info("Updating User: {}", userDTO);
-        User user = userRepository.findById(userDTO.id())
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userDTO.id(), HttpStatus.BAD_REQUEST));
+        validateUserRoleAtLeastOneRole(userDTO);
+        User user = findUserById(userDTO.id());
         User userToBeUpdate = convertor.convert(userDTO, User.class);
-        userToBeUpdate.setPassword(user.getPassword());
-        userToBeUpdate.setCreatedTime(user.getCreatedTime());
-        userToBeUpdate.setCreatedBy(user.getCreatedBy());
-        String updateBy = JWTUtils.getEmail();
-        if (updateBy == null) {
-            updateBy = user.getEmail();
-        }
-        userToBeUpdate.setLastModifiedBy(updateBy);
-        userToBeUpdate.setLastModifiedTime(LocalDateTime.now());
-        userToBeUpdate.setStatus(user.getStatus());
+        setAuditFieldsForUpdate(userToBeUpdate, user);
         userRepository.save(userToBeUpdate);
         log.info("User updated: {}", userToBeUpdate);
         return convertor.convert(userToBeUpdate, UserResDTO.class);
@@ -128,63 +111,98 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(String id) {
         log.info("Deleting User by ID: {}", id);
-        User user=userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + id, HttpStatus.BAD_REQUEST));
+        User user = findUserById(id);
         userRepository.deleteById(id);
         memberRepository.deleteByEmail(user.getEmail());
-
+        log.info("User deleted with ID: {}", id);
     }
 
     @Override
     public List<UserResV1DTO> getAllUsers() {
+        log.info("Fetching all Users");
         List<User> users = userRepository.findAll();
-        return users.stream().peek(user -> user.setPassword(null)).map(user -> convertor.convert(user, UserResV1DTO.class)).collect(Collectors.toList());
+        List<UserResV1DTO> userDTOs = users.stream()
+                .peek(user -> user.setPassword(null))
+                .map(user -> convertor.convert(user, UserResV1DTO.class))
+                .collect(Collectors.toList());
+        log.info("All Users fetched");
+        return userDTOs;
     }
 
     @Override
     @Transactional
     public void resetPassword(ResetPasswordReqDTO resetPasswordReqDTO) {
-        User user = userRepository.findById(resetPasswordReqDTO.id())
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + resetPasswordReqDTO.id(), HttpStatus.BAD_REQUEST));
+        log.info("Resetting password for User with ID: {}", resetPasswordReqDTO.id());
+        User user = findUserById(resetPasswordReqDTO.id());
         user.setPassword(passwordEncoder.encode(resetPasswordReqDTO.password()));
-        user.setLastModifiedTime(LocalDateTime.now());
-        user.setLastModifiedBy(JWTUtils.getEmail());
+        setAuditFieldsForUpdate(user, user);
         userRepository.save(user);
+        log.info("Password reset for User with ID: {}", resetPasswordReqDTO.id());
     }
 
     @Override
     @Transactional
     public void changePassword(ChangePasswordResDTO changePasswordResDTO) {
-        String currentUser = JWTUtils.getEmail();
-        User user = userRepository.findByEmail(currentUser)
-                .orElseThrow(() -> new NotFoundException("User not found with Email: " + currentUser, HttpStatus.BAD_REQUEST));
+        String currentUser = jwtUtils.getEmail();
+        log.info("Changing password for current User: {}", currentUser);
+        User user = findUserByEmail(currentUser);
         if (!passwordEncoder.matches(changePasswordResDTO.currentPassword(), user.getPassword())) {
-            throw  new ValidationException("Current password is incorrect", HttpStatus.BAD_REQUEST);
+            throw new ValidationException("Current password is incorrect", HttpStatus.BAD_REQUEST);
         }
         user.setPassword(passwordEncoder.encode(changePasswordResDTO.newPassword()));
-        user.setLastModifiedTime(LocalDateTime.now());
-        user.setLastModifiedBy(currentUser);
+        setAuditFieldsForUpdate(user, user);
         userRepository.save(user);
+        log.info("Password changed for User: {}", currentUser);
     }
 
     @Override
     @Transactional
     public void changeUserActivationStatus(UserStatus status, String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + id, HttpStatus.BAD_REQUEST));
+        log.info("Changing activation status for User with ID: {} to {}", id, status);
+        User user = findUserById(id);
         user.setStatus(status);
         userRepository.save(user);
-
+        log.info("Activation status changed for User with ID: {} to {}", id, status);
     }
 
     private void validateUserRoleAtLeastOneRole(UserReqDTO userDTO) {
+        log.debug("Validating User roles: {}", userDTO.roles());
         if (userDTO.roles() == null || userDTO.roles().isEmpty()) {
             throw new ValidationException("User must have at least one role", HttpStatus.BAD_REQUEST);
         }
-        if (!userDTO.roles().contains(UserRole.VISITOR)){
-            throw new ValidationException("User should have role VISITOR",HttpStatus.BAD_REQUEST);
+        if (!userDTO.roles().contains(UserRole.VISITOR)) {
+            throw new ValidationException("User should have role VISITOR", HttpStatus.BAD_REQUEST);
         }
     }
 
+    private User findUserById(String id) {
+        log.debug("Finding User by ID: {}", id);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + id, HttpStatus.BAD_REQUEST));
+    }
 
+    private User findUserByEmail(String email) {
+        log.debug("Finding User by Email: {}", email);
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
+    }
+
+    private void setAuditFieldsForCreate(User user) {
+        log.debug("Setting audit fields for create for User: {}", user);
+        String createdBy = jwtUtils.getEmail();
+        user.setCreatedBy(createdBy);
+        user.setCreatedTime(LocalDateTime.now());
+        user.setLastModifiedBy(createdBy);
+        user.setLastModifiedTime(user.getCreatedTime());
+    }
+
+    private void setAuditFieldsForUpdate(User user, User existingUser) {
+        log.debug("Setting audit fields for update for User: {}", user);
+        String updatedBy = jwtUtils.getEmail();
+        user.setLastModifiedBy(updatedBy);
+        user.setLastModifiedTime(LocalDateTime.now());
+        user.setCreatedBy(existingUser.getCreatedBy());
+        user.setCreatedTime(existingUser.getCreatedTime());
+        user.setPassword(existingUser.getPassword());
+    }
 }

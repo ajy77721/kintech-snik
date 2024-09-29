@@ -4,7 +4,7 @@ import com.kitchen.sink.config.MasterTokenConfig;
 import com.kitchen.sink.entity.Member;
 import com.kitchen.sink.entity.User;
 import com.kitchen.sink.enums.UserStatus;
-import com.kitchen.sink.validation.LowerString;
+import com.kitchen.sink.aspect.LowerString;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;

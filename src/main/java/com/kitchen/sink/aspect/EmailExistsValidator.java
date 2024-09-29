@@ -1,13 +1,15 @@
-package com.kitchen.sink.validation;
+package com.kitchen.sink.aspect;
 
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class EmailExistsValidator implements ConstraintValidator<EmailExists, String> {
 
     @Autowired

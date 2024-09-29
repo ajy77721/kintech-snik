@@ -2,6 +2,7 @@ package com.kitchen.sink.dto.request;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.kitchen.sink.aspect.EmailExists;
 import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.validation.*;
 import jakarta.validation.constraints.*;

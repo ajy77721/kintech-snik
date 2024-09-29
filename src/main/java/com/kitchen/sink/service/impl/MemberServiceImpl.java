@@ -15,7 +15,7 @@ import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.MemberService;
 import com.kitchen.sink.utils.JWTUtils;
-import com.kitchen.sink.utils.ObjectConvertor;
+import com.kitchen.sink.utils.UniversalConverter;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -36,14 +36,13 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private MemberRepository memberRepository;
     @Autowired
-    private ObjectConvertor convertor;
+    private UniversalConverter convertor;
     @Autowired
-    private JWTUtils JWTUtils;
+    private JWTUtils jwtUtils;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private UserRepository userRepository;
-
 
     @Override
     @Transactional
@@ -51,12 +50,8 @@ public class MemberServiceImpl implements MemberService {
         log.info("Saving Member: {}", memberReqDTO);
         Member member = convertor.convert(memberReqDTO, Member.class);
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-        String createBy = JWTUtils.getEmail();
-        member.setCreatedBy(createBy);
-        member.setCreatedTime(LocalDateTime.now());
-        if (member.getStatus() == null) {
-            member.setStatus(MemberStatus.PENDING);
-        }
+        setAuditFieldsForCreate(member);
+        member.setStatus(Optional.ofNullable(member.getStatus()).orElse(MemberStatus.PENDING));
         memberRepository.save(member);
         log.info("Member saved: {}", member);
         return convertor.convert(member, MemberResDTO.class);
@@ -65,135 +60,170 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public MemberResDTO getMember(String id) {
         log.info("Getting Member with ID: {}", id);
-        if (StringUtils.isBlank(id)) {
-            throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
-        }
-        Optional<Member> member = memberRepository.findById(id);
-        if (member.isEmpty()) {
-            throw new NotFoundException("No Member found with ID: " + id, HttpStatus.NOT_FOUND);
-        }
-        log.info("Member found: {}", member.get());
-        return convertor.convert(member.get(), MemberResDTO.class);
+        validateId(id);
+        Member member = findMemberById(id);
+        log.info("Member found: {}", member);
+        return convertor.convert(member, MemberResDTO.class);
     }
 
     @Override
     @Transactional
     public MemberResDTO updateMember(MemberReqDTO memberReqDTO) {
-        Member existingMember = memberRepository.findById(memberReqDTO.id()).
-                orElseThrow(() -> new NotFoundException("No Member found with ID: " + memberReqDTO.id(), HttpStatus.NOT_FOUND));
-       if(!existingMember.getStatus().equals(MemberStatus.PENDING)){
-              throw new ValidationException("Member is already approved/declined, cannot update", HttpStatus.CONFLICT);
-        }
+        log.info("Updating Member with ID: {}", memberReqDTO.id());
+        Member existingMember = findMemberById(memberReqDTO.id());
+        validateMemberStatusForUpdate(existingMember);
         Member member = convertor.convert(memberReqDTO, Member.class);
-        String updatedBy = JWTUtils.getEmail();
-        member.setLastModifiedBy(updatedBy);
-        member.setLastModifiedTime(LocalDateTime.now());
-        if (member.getStatus() == null) {
-            member.setStatus(existingMember.getStatus());
-        }
-        member.setCreatedBy(existingMember.getCreatedBy());
-        member.setCreatedTime(existingMember.getCreatedTime());
-        member.setApprovedBy(existingMember.getApprovedBy());
-        member.setApprovedTime(existingMember.getApprovedTime());
-        member.setPassword(existingMember.getPassword());
-        return convertor.convert(memberRepository.save(member), MemberResDTO.class);
+        setAuditFieldsForUpdate(member, existingMember);
+        memberRepository.save(member);
+        log.info("Member updated: {}", member);
+        return convertor.convert(member, MemberResDTO.class);
     }
 
     @Override
     public void deleteMember(String id) {
-        if (StringUtils.isBlank(id)) {
-            throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
-        }
-        Member member = memberRepository.findById(id).
-                orElseThrow(() -> new NotFoundException("No Member found with ID: " + id, HttpStatus.NOT_FOUND));
-        if (userRepository.findByEmail(member.getEmail()).isPresent()) {
-            throw new ValidationException("Member cannot be deleted as user is already created", HttpStatus.PRECONDITION_FAILED);
-        }
+        log.info("Deleting Member with ID: {}", id);
+        validateId(id);
+        Member member = findMemberById(id);
+        validateMemberForDeletion(member);
         memberRepository.deleteById(id);
+        log.info("Member deleted with ID: {}", id);
     }
 
     @Override
     @Transactional
     public void changeMemberStatus(String memberId, MemberStatus status, Set<UserRole> userRoles) {
-        Member member = memberRepository.findById(memberId).
-                orElseThrow(() -> new NotFoundException("No Member found with ID: " + memberId, HttpStatus.NOT_FOUND));
-        if (member.getStatus() != null) {
-            if (status.equals(member.getStatus())) {
-                throw new ValidationException("Member is already " + status, HttpStatus.NO_CONTENT);
-            }
-
-            if (member.getStatus().equals(MemberStatus.DECLINED) && status.equals(MemberStatus.APPROVED)) {
-                throw new ValidationException("Member is already declined,delete member and register", HttpStatus.CONFLICT);
-            }
-        }
-        if (status.equals(MemberStatus.APPROVED)) {
-            if (userRoles == null || userRoles.isEmpty()) {
-                throw new ValidationException("At least one role is mandatory ", HttpStatus.BAD_REQUEST);
-            }
-            if (!userRoles.contains(UserRole.VISITOR)) {
-                throw new ValidationException("VISITOR role is mandatory", HttpStatus.BAD_REQUEST);
-            }
-        }
+        log.info("Changing status of Member with ID: {} to {}", memberId, status);
+        Member member = findMemberById(memberId);
+        validateMemberStatusChange(member, status, userRoles);
         member.setStatus(status);
         member.setApprovedTime(LocalDateTime.now());
-        member.setApprovedBy(JWTUtils.getEmail());
+        member.setApprovedBy(jwtUtils.getEmail());
         memberRepository.save(member);
         if (status.equals(MemberStatus.APPROVED)) {
             User user = createNewUser(userRoles, member);
             userRepository.save(user);
         }
-    }
-
-    private  User createNewUser(Set<UserRole> userRoles, Member member) {
-        User user = new User();
-        user.setEmail(member.getEmail());
-        user.setName(member.getName());
-        user.setPassword(member.getPassword());
-        user.setPhoneNumber(member.getPhoneNumber());
-        if (userRoles != null && !userRoles.isEmpty()) {
-            user.setRoles(userRoles);
-        } else {
-            user.setRoles(Set.of(UserRole.VISITOR));
-        }
-        user.setStatus(UserStatus.ACTIVE);
-
-        user.setCreatedBy(member.getCreatedBy());
-        user.setCreatedTime(member.getCreatedTime());
-        user.setLastModifiedBy(JWTUtils.getEmail());
-        user.setLastModifiedTime(LocalDateTime.now());
-        return user;
+        log.info("Status of Member with ID: {} changed to {}", memberId, status);
     }
 
     @Override
     @Transactional
     public void registerMember(MemberReqDTO memberReqDTO) {
+        log.info("Registering Member: {}", memberReqDTO);
         Member member = convertor.convert(memberReqDTO, Member.class);
-        member.setCreatedBy(member.getEmail());
-        member.setCreatedTime(LocalDateTime.now());
+        setAuditFieldsForCreate(member);
         member.setStatus(MemberStatus.PENDING);
         member.setPassword(passwordEncoder.encode(member.getPassword()));
         memberRepository.save(member);
+        log.info("Member registered: {}", member);
     }
 
     @Override
     public List<MemberDTO> getAllMembers() {
+        log.info("Fetching all Members");
         List<Member> members = memberRepository.findAll();
-        return members.stream().map(member -> convertor.convert(member, MemberDTO.class)).toList();
+        List<MemberDTO> memberDTOs = members.stream().map(member -> convertor.convert(member, MemberDTO.class)).toList();
+        log.info("All Members fetched");
+        return memberDTOs;
     }
 
     @Override
     public void resetPassword(ResetPasswordReqDTO resetPasswordReqDTO) {
-        Member member = memberRepository.findById(resetPasswordReqDTO.id()).
-                orElseThrow(() -> new NotFoundException("No Member found with ID: " + resetPasswordReqDTO.id(), HttpStatus.NOT_FOUND));
-       if (member.getStatus().equals(MemberStatus.APPROVED)) {
-            throw new ValidationException("Member is already approved, cannot reset password", HttpStatus.CONFLICT);
-        }
-       if (member.getStatus().equals(MemberStatus.DECLINED)) {
-            throw new ValidationException("Member is already declined,delete member and register", HttpStatus.CONFLICT);
-        }
+        log.info("Resetting password for Member with ID: {}", resetPasswordReqDTO.id());
+        Member member = findMemberById(resetPasswordReqDTO.id());
+        validateMemberStatusForPasswordReset(member);
         member.setPassword(passwordEncoder.encode(resetPasswordReqDTO.password()));
         memberRepository.save(member);
+        log.info("Password reset for Member with ID: {}", resetPasswordReqDTO.id());
     }
 
+    private void validateId(String id) {
+        log.debug("Validating ID: {}", id);
+        if (StringUtils.isBlank(id)) {
+            throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
+        }
+    }
 
+    private Member findMemberById(String id) {
+        log.debug("Finding Member by ID: {}", id);
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("No Member found with ID: " + id, HttpStatus.NOT_FOUND));
+    }
+
+    private void validateMemberStatusForUpdate(Member existingMember) {
+        log.debug("Validating Member status for update: {}", existingMember.getId());
+        if (!existingMember.getStatus().equals(MemberStatus.PENDING)) {
+            throw new ValidationException("Member is already approved/declined, cannot update", HttpStatus.CONFLICT);
+        }
+    }
+
+    private void validateMemberForDeletion(Member member) {
+        log.debug("Validating Member for deletion: {}", member.getId());
+        if (userRepository.findByEmail(member.getEmail()).isPresent()) {
+            throw new ValidationException("Member cannot be deleted as user is already created", HttpStatus.PRECONDITION_FAILED);
+        }
+    }
+
+    private void validateMemberStatusChange(Member member, MemberStatus status, Set<UserRole> userRoles) {
+        log.debug("Validating Member status change for Member ID: {}", member.getId());
+        if (status.equals(member.getStatus())) {
+            throw new ValidationException("Member is already " + status, HttpStatus.NO_CONTENT);
+        }
+        if (member.getStatus().equals(MemberStatus.DECLINED) && status.equals(MemberStatus.APPROVED)) {
+            throw new ValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
+        }
+        if (status.equals(MemberStatus.APPROVED)) {
+            if (userRoles == null || userRoles.isEmpty()) {
+                throw new ValidationException("At least one role is mandatory", HttpStatus.BAD_REQUEST);
+            }
+            if (!userRoles.contains(UserRole.VISITOR)) {
+                throw new ValidationException("VISITOR role is mandatory", HttpStatus.BAD_REQUEST);
+            }
+        }
+    }
+
+    private void validateMemberStatusForPasswordReset(Member member) {
+        log.debug("Validating Member status for password reset: {}", member.getId());
+        if (member.getStatus().equals(MemberStatus.APPROVED)) {
+            throw new ValidationException("Member is already approved, cannot reset password", HttpStatus.CONFLICT);
+        }
+        if (member.getStatus().equals(MemberStatus.DECLINED)) {
+            throw new ValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
+        }
+    }
+
+    private void setAuditFieldsForCreate(Member member) {
+        log.debug("Setting audit fields for create for Member ID: {}", member.getId());
+        String createdBy = jwtUtils.getEmail();
+        member.setCreatedBy(createdBy);
+        member.setCreatedTime(LocalDateTime.now());
+    }
+
+    private void setAuditFieldsForUpdate(Member member, Member existingMember) {
+        log.debug("Setting audit fields for update for Member ID: {}", member.getId());
+        String updatedBy = jwtUtils.getEmail();
+        member.setLastModifiedBy(updatedBy);
+        member.setLastModifiedTime(LocalDateTime.now());
+        member.setCreatedBy(existingMember.getCreatedBy());
+        member.setCreatedTime(existingMember.getCreatedTime());
+        member.setApprovedBy(existingMember.getApprovedBy());
+        member.setApprovedTime(existingMember.getApprovedTime());
+        member.setPassword(existingMember.getPassword());
+    }
+
+    private User createNewUser(Set<UserRole> userRoles, Member member) {
+        log.debug("Creating new User for Member ID: {}", member.getId());
+        User user = new User();
+        user.setEmail(member.getEmail());
+        user.setName(member.getName());
+        user.setPassword(member.getPassword());
+        user.setPhoneNumber(member.getPhoneNumber());
+        user.setRoles(Optional.ofNullable(userRoles).orElse(Set.of(UserRole.VISITOR)));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setCreatedBy(member.getCreatedBy());
+        user.setCreatedTime(member.getCreatedTime());
+        user.setLastModifiedBy(jwtUtils.getEmail());
+        user.setLastModifiedTime(LocalDateTime.now());
+        return user;
+    }
 }

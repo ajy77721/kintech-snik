@@ -1,10 +1,8 @@
 package com.kitchen.sink.repo;
 
 import com.kitchen.sink.entity.Member;
-import com.kitchen.sink.validation.LowerString;
-import org.springframework.data.jpa.repository.Modifying;
+import com.kitchen.sink.aspect.LowerString;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
