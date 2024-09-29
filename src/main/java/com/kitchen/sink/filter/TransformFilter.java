@@ -1,12 +1,10 @@
 package com.kitchen.sink.filter;
 
 import jakarta.servlet.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -97,50 +95,36 @@ public class TransformFilter extends OncePerRequestFilter {
         responseWrapper.copyBodyToResponse();
     }
 
-    @Getter
-    @AllArgsConstructor
-    @ToString
-    public static class RequestResponseLog {
-        private final String upstreamIp;
-        private final String hostIp;
-        private final String headers;
-        private final String url;
-        private final String uri;
-        private final String queryParams;
-        private final Map<String, String[]> pathVariables;
-        private final String requestBody;
-        private final int requestBodySize;
-        private final String responseBody;
-        private final int responseBodySize;
-        private final int statusCode;
+        public record RequestResponseLog(String upstreamIp, String hostIp, String headers, String url, String uri,
+                                         String queryParams, Map<String, String[]> pathVariables, String requestBody,
+                                         int requestBodySize, String responseBody, int responseBodySize, int statusCode) {
+            public String toFormatString() {
+                return String.format(
+                        "RequestResponseLog {\n" +
+                                "  Upstream IP: %s\n" +
+                                "  Host IP: %s\n" +
+                                "  Headers: %s\n" +
+                                "  URL: %s\n" +
+                                "  URI: %s\n" +
+                                "  Query Params: %s\n" +
+                                "  Path Variables: %s\n" +
+                                "  Request Body: %s\n" +
+                                "  Request Body Size: %d bytes\n" +
+                                "  Response Body: %s\n" +
+                                "  Response Body Size: %d bytes\n" +
+                                "  HTTP Status Code: %d\n" +
+                                "}",
+                        upstreamIp, hostIp, headers, url, uri, queryParams, formattedString(pathVariables),
+                        requestBody, requestBodySize, responseBody, responseBodySize, statusCode
+                );
+            }
 
-        public String toFormatString() {
-            return String.format(
-                    "RequestResponseLog {\n" +
-                            "  Upstream IP: %s\n" +
-                            "  Host IP: %s\n" +
-                            "  Headers: %s\n" +
-                            "  URL: %s\n" +
-                            "  URI: %s\n" +
-                            "  Query Params: %s\n" +
-                            "  Path Variables: %s\n" +
-                            "  Request Body: %s\n" +
-                            "  Request Body Size: %d bytes\n" +
-                            "  Response Body: %s\n" +
-                            "  Response Body Size: %d bytes\n" +
-                            "  HTTP Status Code: %d\n" +
-                            "}",
-                    upstreamIp, hostIp, headers, url, uri, queryParams, formattedString(pathVariables),
-                    requestBody, requestBodySize, responseBody, responseBodySize, statusCode
-            );
+            private String formattedString(Map<String, String[]> pathVariables) {
+                return pathVariables.entrySet().stream()
+                        .map(entry -> entry.getKey() + ": " + String.join(", ", entry.getValue()))
+                        .collect(Collectors.joining(", "));
+            }
         }
-
-        private String formattedString(Map<String, String[]> pathVariables) {
-            return pathVariables.entrySet().stream()
-                    .map(entry -> entry.getKey() + ": " + String.join(", ", entry.getValue()))
-                    .collect(Collectors.joining(", "));
-        }
-    }
 
     public String getHostIpAddress() {
         if (hostIpAddress == null) {

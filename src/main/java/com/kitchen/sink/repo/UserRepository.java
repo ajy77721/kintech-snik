@@ -9,7 +9,5 @@ import java.util.Optional;
 
 public interface UserRepository extends MongoRepository<User, String> {
     Optional<User>  findByEmail(String email);
-
-    @Query("SELECT u.password FROM User u WHERE u.id = :id")
-    String getPasswordById(@Param("id") String id);
+    boolean existsByEmail(String email);
 }

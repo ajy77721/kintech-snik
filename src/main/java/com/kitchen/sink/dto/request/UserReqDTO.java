@@ -3,6 +3,7 @@ package com.kitchen.sink.dto.request;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.validation.CreateGroup;
+import com.kitchen.sink.validation.EmailExists;
 import com.kitchen.sink.validation.RegisterGroup;
 import com.kitchen.sink.validation.UpdateGroup;
 import jakarta.validation.constraints.*;
@@ -19,6 +20,7 @@ public record UserReqDTO(
         String name,
 
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "email cannot be blank")
+        @EmailExists(groups = {CreateGroup.class, UpdateGroup.class}, message = "Email already exists in the system")
         String email,
 
         @NotBlank(message = "Phone number is mandatory", groups = {CreateGroup.class, UpdateGroup.class})
