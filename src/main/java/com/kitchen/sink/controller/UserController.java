@@ -107,7 +107,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    public ResponseEntity<APIResponseDTO<String>> deleteUser(@PathVariable String id) {
+    public ResponseEntity<APIResponseDTO<String>> deleteUser(@PathVariable @NotBlank(message = "Id can not be null") String id) {
         userService.deleteUser(id);
         return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("delete successfully").build());
     }
@@ -167,7 +167,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
     @PostMapping("/{id}/status/{status}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    public ResponseEntity<APIResponseDTO<String>> changeUserActivationStatus(@PathVariable("status") @NotNull(message = "cannot be null") UserStatus status, @PathVariable("id") @NotNull(message = "cannot be null") String id) {
+    public ResponseEntity<APIResponseDTO<String>> changeUserActivationStatus(@PathVariable("status") @NotNull(message = "status cannot be null") UserStatus status, @PathVariable("id") @NotNull(message = "id cannot be null") String id) {
         userService.changeUserActivationStatus(status,id);
         return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("User status changed successfully").build());
     }

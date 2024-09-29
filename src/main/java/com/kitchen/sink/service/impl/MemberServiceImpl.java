@@ -18,6 +18,7 @@ import com.kitchen.sink.utils.JWTUtils;
 import com.kitchen.sink.utils.ObjectConvertor;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -64,7 +65,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public MemberResDTO getMember(String id) {
         log.info("Getting Member with ID: {}", id);
-        if (id == null) {
+        if (StringUtils.isBlank(id)) {
             throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
         }
         Optional<Member> member = memberRepository.findById(id);
@@ -100,7 +101,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public void deleteMember(String id) {
-        if (id == null) {
+        if (StringUtils.isBlank(id)) {
             throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
         }
         Member member = memberRepository.findById(id).

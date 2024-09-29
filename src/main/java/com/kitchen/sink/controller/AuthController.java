@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,7 +51,7 @@ public class AuthController {
 
     })
     @PostMapping("/logout")
-    public ResponseEntity<APIResponseDTO<LogoutResponseDTO>> logout(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<APIResponseDTO<LogoutResponseDTO>> logout(@RequestHeader("Authorization") @NotBlank(message = "cannot be logout token is blank") String authorizationHeader) {
         return ResponseEntity.ok(APIResponseDTO.<LogoutResponseDTO>builder()
                 .status(true)
                 .data(authService.logout(authorizationHeader))
