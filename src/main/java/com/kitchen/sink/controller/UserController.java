@@ -42,7 +42,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
     public ResponseEntity<APIResponseDTO<UserResDTO>> saveUser(@RequestBody @NotNull(message = "UserDTO cannot be null") @Validated(CreateGroup.class) UserReqDTO userDTO) {
         UserResDTO savedUser = userService.saveUser(userDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(APIResponseDTO.<UserResDTO>builder().status(true).data(savedUser).build());

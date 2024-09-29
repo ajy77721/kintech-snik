@@ -98,3 +98,203 @@ server.tomcat.accesslog.include-headers=false
 server.tomcat.accesslog.rotate=true
 ```
 
+
+### Base URL 
+
+```
+http://localhost:8080/kitchensink
+```
+
+
+## Endpoints
+
+### User Endpoints
+
+- **Get All Users**
+   - **GET** `/user`
+   - **Responses**:
+      - 200: Successful retrieval of users.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Save User**
+   - **POST** `/user`
+   - **Request Body**: `UserReqDTO`
+   - **Responses**:
+      - 200: User saved successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Update User**
+   - **PUT** `/user`
+   - **Request Body**: `UserReqDTO`
+   - **Responses**:
+      - 200: User updated successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Get User by ID**
+   - **GET** `/user/id/{id}`
+   - **Parameters**: `id` (string)
+   - **Responses**:
+      - 200: User details retrieved successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Get User by Email**
+   - **GET** `/user/email/{email}`
+   - **Parameters**: `email` (string)
+   - **Responses**:
+      - 200: User details retrieved successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Change User Activation Status**
+   - **POST** `/user/{id}/status/{status}`
+   - **Parameters**: `id` (string), `status` (string: ACTIVE | BLOCKED)
+   - **Responses**:
+      - 200: User status changed successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Reset Password**
+   - **POST** `/user/reset-password`
+   - **Request Body**: `ResetPasswordReqDTO`
+   - **Responses**:
+      - 200: Password reset successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Change Password**
+   - **POST** `/user/change-password`
+   - **Request Body**: `ChangePasswordResDTO`
+   - **Responses**:
+      - 200: Password changed successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Delete User**
+   - **DELETE** `/user/{id}`
+   - **Parameters**: `id` (string)
+   - **Responses**:
+      - 200: User deleted successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+### Member Endpoints
+
+- **Get All Members**
+   - **GET** `/member`
+   - **Responses**:
+      - 200: Successful retrieval of members.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Add Member**
+   - **POST** `/member`
+   - **Request Body**: `MemberReqDTO`
+   - **Responses**:
+      - 200: Member added successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Update Member**
+   - **PUT** `/member`
+   - **Request Body**: `MemberReqDTO`
+   - **Responses**:
+      - 200: Member updated successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Get Member by ID**
+   - **GET** `/member/id/{memberId}`
+   - **Parameters**: `memberId` (string)
+   - **Responses**:
+      - 200: Member details retrieved successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Reset Member Password**
+   - **POST** `/member/reset-password`
+   - **Request Body**: `ResetPasswordReqDTO`
+   - **Responses**:
+      - 200: Member password reset successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Register Member**
+   - **POST** `/member/register`
+   - **Request Body**: `MemberReqDTO`
+   - **Responses**:
+      - 200: Member registered successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Change Member Status**
+   - **POST** `/member/change-status`
+   - **Parameters**: `memberId`, `status` (APPROVED | DECLINED | PENDING)
+   - **Responses**:
+      - 200: Member status changed successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Delete Member**
+   - **DELETE** `/member/{memberId}`
+   - **Parameters**: `memberId` (string)
+   - **Responses**:
+      - 200: Member deleted successfully.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+### Authentication Endpoints
+
+- **Log In User**
+   - **POST** `/auth/login`
+   - **Request Body**: `LoginRequestDTO`
+   - **Responses**:
+      - 200: Login successful.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+- **Log Out User**
+   - **POST** `/auth/logout`
+   - **Headers**: `Authorization`
+   - **Responses**:
+      - 200: Logout successful.
+      - 400: Invalid Request.
+      - 500: Internal Server Error.
+
+## Data Models
+
+### UserReqDTO
+```json
+{
+  "id": "string",
+  "name": "string",
+  "email": "string",
+  "phoneNumber": "string",
+  "password": "string",
+  "roles": ["ADMIN", "USER", "VISITOR"],
+  "status": "ACTIVE | BLOCKED"
+}
+```
+## Global Exception Handling
+
+The Kitchen Sink API includes a global exception handler to manage errors gracefully. The `GlobalExceptionHandler` class handles various exceptions and returns appropriate `APIResponseDTO` responses.
+
+### Exception Handlers
+
+- **ValidationException**: Handles validation errors with a 400 status.
+- **NotFoundException**: Handles not found errors with a 404 status.
+- **ObjectMappingException**: Handles object mapping errors with a 500 status.
+- **UsernameNotFoundException**: Handles username not found errors with a 401 status.
+- **NoHandlerFoundException**: Handles cases where no handler is found with a 404 status.
+- **DuplicateKeyException**: Handles duplicate key errors (e.g., email already used) with a 400 status.
+- **AccessDeniedException**: Handles access denied errors with a 403 status.
+- **LockedException**: Handles locked user account errors with a 401 status.
+- **SessionAuthenticationException**: Handles session authentication errors with a 401 status.
+- **MethodArgumentNotValidException**: Handles argument validation errors with a 400 status.
+- **HttpMessageNotReadableException**: Handles unreadable HTTP message errors with a 400 status.
+- **Generic Exception**: Catches all other exceptions and returns a 500 status.
+
+Each response includes an error message detailing the issue encountered.

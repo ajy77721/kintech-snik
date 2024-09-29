@@ -132,7 +132,7 @@ public class MemberController {
     @PostMapping("/register")
     public ResponseEntity<APIResponseDTO<String>> registerMember(@RequestBody @NotNull(message = "MemberDTO cannot be null") @Validated(RegisterGroup.class)  MemberReqDTO memberReqDTO) {
         memberService.registerMember(memberReqDTO);
-        return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("Registration successful. Pending approval").build());
+        return ResponseEntity.ok().body(APIResponseDTO.<String>builder().status(true).data("Registration successful. Pending for approval. Please check with administration.").build());
     }
 
     @Operation(summary = "Get All Members", description = "Get all members")
