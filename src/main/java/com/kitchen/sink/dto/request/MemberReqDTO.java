@@ -1,10 +1,9 @@
 package com.kitchen.sink.dto.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.kitchen.sink.enums.MemberStatus;
-import com.kitchen.sink.validation.CreateGroup;
-import com.kitchen.sink.validation.EmailExists;
-import com.kitchen.sink.validation.RegisterGroup;
-import com.kitchen.sink.validation.UpdateGroup;
+import com.kitchen.sink.validation.*;
 import jakarta.validation.constraints.*;
 
 public record MemberReqDTO(
@@ -20,6 +19,8 @@ public record MemberReqDTO(
         @NotBlank(message = "Email is mandatory", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
         @Email(message = "Email should be valid", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
         @EmailExists(groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class}, message = "Email already exists in the system")
+        @JsonSerialize(using = LowerCaseStringSerializer.class)
+        @JsonDeserialize(using = LowerCaseStringDeserializer.class)
         String email,
 
         @NotBlank(message = "Phone number is mandatory", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})

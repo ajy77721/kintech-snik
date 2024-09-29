@@ -2,6 +2,7 @@ package com.kitchen.sink.entity;
 
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -22,6 +23,7 @@ public class User  {
     private String name;
     @NotNull
     @Indexed(unique = true)
+    @Email
     private String email;
     @NotNull
     private String password;

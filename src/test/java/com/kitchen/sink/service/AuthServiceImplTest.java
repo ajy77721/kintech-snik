@@ -22,6 +22,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,7 +61,7 @@ class AuthServiceImplTest {
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(userService.getUserDTOByEmail("test@example.com")).thenReturn(userDTO);
-        when(userSessionRepository.findByUsername("test@example.com")).thenReturn(userSession);
+        when(userSessionRepository.findByEmail("test@example.com")).thenReturn(Optional.of(userSession));
         when(jwtUtils.validateToken("validToken", "test@example.com")).thenReturn(true);
         when(jwtUtils.validateRoles("validToken", authentication.getAuthorities())).thenReturn(true);
 
@@ -90,7 +91,7 @@ class AuthServiceImplTest {
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(userService.getUserDTOByEmail("test@example.com")).thenReturn(userDTO);
-        when(userSessionRepository.findByUsername("test@example.com")).thenReturn(userSession);
+        when(userSessionRepository.findByEmail("test@example.com")).thenReturn(Optional.of(userSession));
         when(jwtUtils.validateToken("invalidToken", "test@example.com")).thenReturn(false);
         when(jwtUtils.generateToken("test@example.com", userDTO.roles())).thenReturn("newToken");
 

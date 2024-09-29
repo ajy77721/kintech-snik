@@ -4,6 +4,7 @@ import com.kitchen.sink.config.MasterTokenConfig;
 import com.kitchen.sink.entity.Member;
 import com.kitchen.sink.entity.User;
 import com.kitchen.sink.enums.UserStatus;
+import com.kitchen.sink.validation.LowerString;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -28,20 +29,20 @@ public class MongoInitializer {
 
     @PostConstruct
     public void init() {
-        //TODO check if exist then don't create again
 
-        if (!indexExists(User.class, "email")) {
-            mongoTemplate.indexOps(User.class)
-                    .ensureIndex(new Index()
-                            .on("email", Sort.Direction.ASC)
-                            .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
-        }
-        if (!indexExists(Member.class, "email")) {
-            mongoTemplate.indexOps(Member.class)
-                    .ensureIndex(new Index()
-                            .on("email", Sort.Direction.ASC)
-                            .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
-        } User user = fetchUserByEmail(masterTokenConfig.getEmail());
+        mongoTemplate.indexOps(User.class)
+                .ensureIndex(new Index()
+                        .named("email-case-insensitive")
+                        .on("email", Sort.Direction.ASC)
+                        .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
+
+        mongoTemplate.indexOps(Member.class)
+                .ensureIndex(new Index()
+                        .named("email-case-insensitive")
+                        .on("email", Sort.Direction.ASC)
+                        .collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())));
+
+        User user = fetchUserByEmail(masterTokenConfig.getEmail());
         if (user == null) {
             user = new User();
         }
@@ -57,15 +58,10 @@ public class MongoInitializer {
         mongoTemplate.save(user);
     }
 
-    private User fetchUserByEmail(String email) {
+    private User fetchUserByEmail(@LowerString String email) {
         Query query = new Query();
         query.addCriteria(Criteria.where("email").is(email));
         return mongoTemplate.findOne(query.collation(Collation.of("en").strength(Collation.ComparisonLevel.secondary())), User.class);
-    }
-    private boolean indexExists(Class<?> entityClass, String fieldName) {
-        return mongoTemplate.indexOps(entityClass).getIndexInfo().stream()
-                .anyMatch(indexInfo -> indexInfo.getIndexFields().stream()
-                        .anyMatch(indexField -> indexField.getKey().equals(fieldName)));
     }
 }
 

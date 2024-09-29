@@ -1,10 +1,13 @@
 package com.kitchen.sink.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.validation.CreateGroup;
+import com.kitchen.sink.validation.LowerCaseStringDeserializer;
+import com.kitchen.sink.validation.LowerCaseStringSerializer;
 import com.kitchen.sink.validation.UpdateGroup;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
@@ -21,6 +24,8 @@ public record UserDTO(
         String name,
 
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "email cannot be blank")
+        @JsonSerialize(using = LowerCaseStringSerializer.class)
+        @JsonDeserialize(using = LowerCaseStringDeserializer.class)
         String email,
 
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "password cannot be blank")

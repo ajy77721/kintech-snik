@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class UserSession {
     @Id
     private String id;
-    private String username;
+    private String email;
     private String token;
     private LocalDateTime createdTime;
 }

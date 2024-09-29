@@ -21,7 +21,7 @@ public class UserDetailsDTO implements UserDetails {
     private final List<GrantedAuthority> roles;
 
     public UserDetailsDTO(UserDTO user) {
-        this.email = user.email();
+        this.email = user.email().toLowerCase();
         this.password = user.password();
         this.roles = user.roles().stream()
                 .map(UserRole::toString)

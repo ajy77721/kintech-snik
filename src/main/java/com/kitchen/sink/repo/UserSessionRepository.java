@@ -1,9 +1,12 @@
 package com.kitchen.sink.repo;
 
 import com.kitchen.sink.entity.UserSession;
+import com.kitchen.sink.validation.LowerString;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Optional;
+
 public interface UserSessionRepository extends MongoRepository<UserSession, String> {
-    UserSession findByUsername(String username);
-    void deleteByToken(String jwt);
+    Optional<UserSession> findByEmail(  @LowerString String username);
+    void deleteByToken( @LowerString String jwt);
 }

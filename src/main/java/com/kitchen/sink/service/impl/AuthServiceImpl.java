@@ -16,6 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 import static com.kitchen.sink.constants.JWTConstant.BEARER;
 import static com.kitchen.sink.constants.JWTConstant.LOGOUT_SUCCESS_MESSAGE;
 
@@ -40,9 +42,11 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
         );
         UserDTO user = userService.getUserDTOByEmail(loginRequest.email());
-        UserSession byUsername = userSessionRepository.findByUsername(user.email());
-        if (byUsername != null) {
+        Optional<UserSession> byUsernameOptional = userSessionRepository.findByEmail(user.email());
+        if (byUsernameOptional.isPresent()) {
+            UserSession byUsername = byUsernameOptional.get();
             try {
+
                 if (JWTUtils.validateToken(byUsername.getToken(), user.email())) {
                     if (JWTUtils.validateRoles(byUsername.getToken(), authentication.getAuthorities())) {
                         return LoginResponseDTO.builder()
@@ -57,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String jwt = JWTUtils.generateToken(user.email(), user.roles());
-        userSessionRepository.save(UserSession.builder().username(user.email()).token(jwt).build());
+        userSessionRepository.save(UserSession.builder().email(user.email()).token(jwt).build());
         return LoginResponseDTO.builder()
                 .token(jwt)
                 .email(user.email())

@@ -1,11 +1,10 @@
 package com.kitchen.sink.dto.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
-import com.kitchen.sink.validation.CreateGroup;
-import com.kitchen.sink.validation.EmailExists;
-import com.kitchen.sink.validation.RegisterGroup;
-import com.kitchen.sink.validation.UpdateGroup;
+import com.kitchen.sink.validation.*;
 import jakarta.validation.constraints.*;
 
 import java.util.Set;
@@ -21,6 +20,8 @@ public record UserReqDTO(
 
         @NotBlank(groups = {CreateGroup.class, UpdateGroup.class}, message = "email cannot be blank")
         @EmailExists(groups = {CreateGroup.class, UpdateGroup.class}, message = "Email already exists in the system")
+        @JsonSerialize(using = LowerCaseStringSerializer.class)
+        @JsonDeserialize(using = LowerCaseStringDeserializer.class)
         String email,
 
         @NotBlank(message = "Phone number is mandatory", groups = {CreateGroup.class, UpdateGroup.class})

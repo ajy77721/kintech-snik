@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
+
 import static com.kitchen.sink.constants.JWTConstant.AUTHORIZATION;
 import static com.kitchen.sink.constants.JWTConstant.BEARER;
 
@@ -48,8 +50,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             if (JWTUtils.validateToken(jwt, userDetails.getUsername())) {
-               UserSession userSession= userSessionRepository.findByUsername(username);
-               if (userSession==null || !userSession.getToken().equals(jwt)){
+               Optional<UserSession> userSession= userSessionRepository.findByEmail(username);
+               if( userSession.isEmpty() || !userSession.get().getToken().equals(jwt)){
                    throw new InsufficientAuthenticationException("Token is not valid or expired");
                }
                if (!JWTUtils.validateRoles(jwt, userDetails.getAuthorities())){
