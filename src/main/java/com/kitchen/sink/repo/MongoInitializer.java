@@ -47,7 +47,7 @@ public class MongoInitializer {
             user = new User();
         }
         user.setName(masterTokenConfig.getName());
-        user.setEmail(masterTokenConfig.getEmail());
+        user.setEmail(masterTokenConfig.getEmail().toLowerCase());
         user.setPassword(passwordEncoder.encode(masterTokenConfig.getPassword()));
         user.setRoles(masterTokenConfig.getRoles());
         user.setStatus(UserStatus.ACTIVE);

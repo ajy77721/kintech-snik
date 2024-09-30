@@ -3,6 +3,7 @@ package com.kitchen.sink.exception;
 import com.kitchen.sink.dto.APIResponseDTO;
 import com.kitchen.sink.dto.ErrorDTO;
 import com.kitchen.sink.utils.UniversalConverter;
+import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,8 +32,8 @@ public class GlobalExceptionHandler {
     @Autowired
     private UniversalConverter universalConverter;
 
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<APIResponseDTO<?>> handleValidationException(ValidationException ex) {
+    @ExceptionHandler(SinkValidationException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleValidationException(SinkValidationException ex) {
         return buildErrorResponse(ex, ex.getStatus(), "Validation Exception");
     }
 
@@ -99,6 +100,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<APIResponseDTO<?>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, "Http Message Not Readable Exception", "Invalid Request");
     }
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleValidationException(ValidationException ex) {
+       if (ex.getCause() instanceof UniqueEmailException  uniqueEmailException){
+              return buildErrorResponse(uniqueEmailException,uniqueEmailException.getStatus(), "Validation Exception", uniqueEmailException.getMessage());
+       }
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, "Validation Exception", ex.getMessage());
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIResponseDTO<?>> handleException(Exception ex) {

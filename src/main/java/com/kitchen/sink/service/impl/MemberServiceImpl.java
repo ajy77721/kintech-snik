@@ -10,7 +10,7 @@ import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.exception.NotFoundException;
-import com.kitchen.sink.exception.ValidationException;
+import com.kitchen.sink.exception.SinkValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.MemberService;
@@ -74,6 +74,7 @@ public class MemberServiceImpl implements MemberService {
         validateMemberStatusForUpdate(existingMember);
         Member member = convertor.convert(memberReqDTO, Member.class);
         setAuditFieldsForUpdate(member, existingMember);
+        member.setStatus(MemberStatus.PENDING);
         memberRepository.save(member);
         log.info("Member updated: {}", member);
         return convertor.convert(member, MemberResDTO.class);
@@ -140,7 +141,7 @@ public class MemberServiceImpl implements MemberService {
     private void validateId(String id) {
         log.debug("Validating ID: {}", id);
         if (StringUtils.isBlank(id)) {
-            throw new ValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
+            throw new SinkValidationException("Member Id cannot be null", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -153,31 +154,31 @@ public class MemberServiceImpl implements MemberService {
     private void validateMemberStatusForUpdate(Member existingMember) {
         log.debug("Validating Member status for update: {}", existingMember.getId());
         if (!existingMember.getStatus().equals(MemberStatus.PENDING)) {
-            throw new ValidationException("Member is already approved/declined, cannot update", HttpStatus.CONFLICT);
+            throw new SinkValidationException("Member is already approved/declined, cannot update", HttpStatus.CONFLICT);
         }
     }
 
     private void validateMemberForDeletion(Member member) {
         log.debug("Validating Member for deletion: {}", member.getId());
-        if (userRepository.findByEmail(member.getEmail()).isPresent()) {
-            throw new ValidationException("Member cannot be deleted as user is already created", HttpStatus.PRECONDITION_FAILED);
+        if (( member.getStatus()!=null && member.getStatus().equals(MemberStatus.APPROVED) )|| userRepository.findByEmail(member.getEmail()).isPresent()) {
+            throw new SinkValidationException("Member cannot be deleted as user is already created", HttpStatus.PRECONDITION_FAILED);
         }
     }
 
     private void validateMemberStatusChange(Member member, MemberStatus status, Set<UserRole> userRoles) {
         log.debug("Validating Member status change for Member ID: {}", member.getId());
         if (status.equals(member.getStatus())) {
-            throw new ValidationException("Member is already " + status, HttpStatus.NO_CONTENT);
+            throw new SinkValidationException("Member is already " + status, HttpStatus.NO_CONTENT);
         }
         if (member.getStatus().equals(MemberStatus.DECLINED) && status.equals(MemberStatus.APPROVED)) {
-            throw new ValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
+            throw new SinkValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
         }
         if (status.equals(MemberStatus.APPROVED)) {
             if (userRoles == null || userRoles.isEmpty()) {
-                throw new ValidationException("At least one role is mandatory", HttpStatus.BAD_REQUEST);
+                throw new SinkValidationException("At least one role is mandatory", HttpStatus.BAD_REQUEST);
             }
             if (!userRoles.contains(UserRole.VISITOR)) {
-                throw new ValidationException("VISITOR role is mandatory", HttpStatus.BAD_REQUEST);
+                throw new SinkValidationException("VISITOR role is mandatory", HttpStatus.BAD_REQUEST);
             }
         }
     }
@@ -185,10 +186,10 @@ public class MemberServiceImpl implements MemberService {
     private void validateMemberStatusForPasswordReset(Member member) {
         log.debug("Validating Member status for password reset: {}", member.getId());
         if (member.getStatus().equals(MemberStatus.APPROVED)) {
-            throw new ValidationException("Member is already approved, cannot reset password", HttpStatus.CONFLICT);
+            throw new SinkValidationException("Member is already approved, cannot reset password", HttpStatus.CONFLICT);
         }
         if (member.getStatus().equals(MemberStatus.DECLINED)) {
-            throw new ValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
+            throw new SinkValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
         }
     }
 

@@ -10,7 +10,7 @@ import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.exception.NotFoundException;
 import com.kitchen.sink.exception.ObjectMappingException;
-import com.kitchen.sink.exception.ValidationException;
+import com.kitchen.sink.exception.SinkValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.impl.MemberServiceImpl;
@@ -148,7 +148,7 @@ class MemberServiceImplTest {
 
     @Test
     void testGetMember_NullId() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.getMember(null));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.getMember(null));
         assertEquals("Member Id cannot be null", exception.getMessage());
     }
     @Test
@@ -203,7 +203,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById("1")).thenReturn(Optional.of(existingMember));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.updateMember(memberReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.updateMember(memberReqDTO));
         assertEquals("Member is already approved/declined, cannot update", exception.getMessage());
     }
     @Test
@@ -211,6 +211,7 @@ class MemberServiceImplTest {
         String memberId = "1";
         Member member = new Member();
         member.setId(memberId);
+        member.setStatus(MemberStatus.PENDING);
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(userRepository.findByEmail(member.getEmail())).thenReturn(Optional.empty());
@@ -232,7 +233,7 @@ class MemberServiceImplTest {
     @Test
     void testDeleteMember_Id_Null() {
         String memberId = null;
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.deleteMember(memberId));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.deleteMember(memberId));
         assertEquals("Member Id cannot be null", exception.getMessage());
     }
 
@@ -246,7 +247,20 @@ class MemberServiceImplTest {
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(userRepository.findByEmail(member.getEmail())).thenReturn(Optional.of(new User()));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.deleteMember(memberId));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.deleteMember(memberId));
+        assertEquals("Member cannot be deleted as user is already created", exception.getMessage());
+    }
+    @Test
+    void testDeleteMember_CannotBeDeleted_PENDING() {
+        String memberId = "1";
+        Member member = new Member();
+        member.setId(memberId);
+        member.setEmail("test@example.com");
+        member.setStatus(MemberStatus.PENDING);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(userRepository.findByEmail(member.getEmail())).thenReturn(Optional.of(new User()));
+
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.deleteMember(memberId));
         assertEquals("Member cannot be deleted as user is already created", exception.getMessage());
     }
 
@@ -285,7 +299,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
         assertEquals("Member is already APPROVED", exception.getMessage());
     }
 
@@ -298,7 +312,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
         assertEquals("Member is already declined, delete member and register", exception.getMessage());
     }
 
@@ -311,10 +325,10 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of()));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of()));
         assertEquals("At least one role is mandatory", exception.getMessage());
 
-        exception = assertThrows(ValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.ADMIN)));
+        exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.ADMIN)));
         assertEquals("VISITOR role is mandatory", exception.getMessage());
     }
     @Test
@@ -422,7 +436,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.resetPassword(resetPasswordReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.resetPassword(resetPasswordReqDTO));
         assertEquals("Member is already approved, cannot reset password", exception.getMessage());
     }
 
@@ -436,7 +450,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> memberService.resetPassword(resetPasswordReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.resetPassword(resetPasswordReqDTO));
         assertEquals("Member is already declined, delete member and register", exception.getMessage());
     }
 }

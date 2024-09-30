@@ -8,10 +8,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Constraint(validatedBy = EmailExistsValidator.class)
-@Target({ ElementType.FIELD })
+@Constraint(validatedBy = UniqueEmailValidator.class)
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EmailExists {
+public @interface UniqueEmail {
 
     String message() default "Email already exists in the system";
 

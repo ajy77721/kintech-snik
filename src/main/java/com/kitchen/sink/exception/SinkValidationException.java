@@ -4,9 +4,9 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public class ValidationException extends RuntimeException {
+public class SinkValidationException extends RuntimeException {
    private final HttpStatus status ;
-    public ValidationException(String message, HttpStatus status) {
+    public SinkValidationException(String message, HttpStatus status) {
         super(message);
         this.status = status;
     }

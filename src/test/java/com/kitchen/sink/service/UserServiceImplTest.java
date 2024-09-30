@@ -12,7 +12,7 @@ import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.exception.NotFoundException;
 import com.kitchen.sink.exception.ObjectMappingException;
-import com.kitchen.sink.exception.ValidationException;
+import com.kitchen.sink.exception.SinkValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.impl.UserServiceImpl;
@@ -91,14 +91,14 @@ class UserServiceImplTest {
     void testSaveUser_NoRoles() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Test User", "test@example.com", "12312","password", Set.of(), UserStatus.ACTIVE);
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.saveUser(userReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.saveUser(userReqDTO));
         assertEquals("User must have at least one role", exception.getMessage());
     }
 
     @Test
     void testSaveUser_NoVisitorRole() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Test User", "test@example.com", "12345", "password",Set.of(UserRole.ADMIN), UserStatus.ACTIVE);
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.saveUser(userReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.saveUser(userReqDTO));
         assertEquals("User should have role VISITOR", exception.getMessage());
     }
 
@@ -222,7 +222,7 @@ class UserServiceImplTest {
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.getUserDTOByEmail(email));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.getUserDTOByEmail(email));
         assertEquals("User is blocked", exception.getMessage());
     }
 
@@ -236,7 +236,7 @@ class UserServiceImplTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(memberRepository.findByEmail(email)).thenReturn(Optional.of(member));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.getUserDTOByEmail(email));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.getUserDTOByEmail(email));
         assertEquals("Application on PENDING status", exception.getMessage());
     }
     @Test
@@ -288,7 +288,7 @@ class UserServiceImplTest {
     void testUpdateUser_NoRoles() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Updated User", "updated@example.com", "12312", "password", Set.of(), UserStatus.ACTIVE);
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.updateUser(userReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.updateUser(userReqDTO));
         assertEquals("User must have at least one role", exception.getMessage());
     }
 
@@ -296,7 +296,7 @@ class UserServiceImplTest {
     void testUpdateUser_NoVisitorRole() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Updated User", "updated@example.com", "12312", "password", Set.of(UserRole.ADMIN), UserStatus.ACTIVE);
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.updateUser(userReqDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.updateUser(userReqDTO));
         assertEquals("User should have role VISITOR", exception.getMessage());
     }
     @Test
@@ -422,7 +422,7 @@ class UserServiceImplTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("currentPassword", "encodedCurrentPassword")).thenReturn(false);
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> userService.changePassword(changePasswordResDTO));
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.changePassword(changePasswordResDTO));
         assertEquals("Current password is incorrect", exception.getMessage());
     }
     @Test

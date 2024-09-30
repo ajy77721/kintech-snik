@@ -12,7 +12,7 @@ import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.enums.UserRole;
 import com.kitchen.sink.enums.UserStatus;
 import com.kitchen.sink.exception.NotFoundException;
-import com.kitchen.sink.exception.ValidationException;
+import com.kitchen.sink.exception.SinkValidationException;
 import com.kitchen.sink.repo.MemberRepository;
 import com.kitchen.sink.repo.UserRepository;
 import com.kitchen.sink.service.UserService;
@@ -82,12 +82,12 @@ public class UserServiceImpl implements UserService {
             Member member = memberRepository.findByEmail(email)
                     .orElseThrow(() -> new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
             if (!member.getStatus().equals(MemberStatus.APPROVED)) {
-                throw new ValidationException("Application on " + member.getStatus() + " status", HttpStatus.BAD_REQUEST);
+                throw new SinkValidationException("Application on " + member.getStatus() + " status", HttpStatus.BAD_REQUEST);
             }
         }
         if (user.isPresent()) {
             if (user.get().getStatus().equals(UserStatus.BLOCKED)) {
-                throw new ValidationException("User is blocked", HttpStatus.BAD_REQUEST);
+                throw new SinkValidationException("User is blocked", HttpStatus.BAD_REQUEST);
             }
             return convertor.convert(user.get(), UserDTO.class);
         }
@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
         log.info("Changing password for current User: {}", currentUser);
         User user = findUserByEmail(currentUser);
         if (!passwordEncoder.matches(changePasswordResDTO.currentPassword(), user.getPassword())) {
-            throw new ValidationException("Current password is incorrect", HttpStatus.BAD_REQUEST);
+            throw new SinkValidationException("Current password is incorrect", HttpStatus.BAD_REQUEST);
         }
         user.setPassword(passwordEncoder.encode(changePasswordResDTO.newPassword()));
         setAuditFieldsForUpdate(user, user);
@@ -168,10 +168,10 @@ public class UserServiceImpl implements UserService {
     private void validateUserRoleAtLeastOneRole(UserReqDTO userDTO) {
         log.debug("Validating User roles: {}", userDTO.roles());
         if (userDTO.roles() == null || userDTO.roles().isEmpty()) {
-            throw new ValidationException("User must have at least one role", HttpStatus.BAD_REQUEST);
+            throw new SinkValidationException("User must have at least one role", HttpStatus.BAD_REQUEST);
         }
         if (!userDTO.roles().contains(UserRole.VISITOR)) {
-            throw new ValidationException("User should have role VISITOR", HttpStatus.BAD_REQUEST);
+            throw new SinkValidationException("User should have role VISITOR", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -204,5 +204,6 @@ public class UserServiceImpl implements UserService {
         user.setCreatedBy(existingUser.getCreatedBy());
         user.setCreatedTime(existingUser.getCreatedTime());
         user.setPassword(existingUser.getPassword());
+        user.setStatus(existingUser.getStatus());
     }
 }

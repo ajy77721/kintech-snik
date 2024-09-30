@@ -2,11 +2,12 @@ package com.kitchen.sink.dto.request;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.kitchen.sink.aspect.EmailExists;
+import com.kitchen.sink.aspect.UniqueEmail;
 import com.kitchen.sink.enums.MemberStatus;
 import com.kitchen.sink.validation.*;
 import jakarta.validation.constraints.*;
 
+@UniqueEmail(groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class}, message = "Email already exists in the system")
 public record MemberReqDTO(
 
         @NotNull(groups = UpdateGroup.class, message = "Id is mandatory")
@@ -19,13 +20,12 @@ public record MemberReqDTO(
 
         @NotBlank(message = "Email is mandatory", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
         @Email(message = "Email should be valid", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
-        @EmailExists(groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class}, message = "Email already exists in the system")
         @JsonSerialize(using = LowerCaseStringSerializer.class)
         @JsonDeserialize(using = LowerCaseStringDeserializer.class)
         String email,
 
         @NotBlank(message = "Phone number is mandatory", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
-        @Size(min = 10, max = 12, message = "Phone number must be between 10 and 12 digits", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
+        @Size(min = 12, max = 12, message = "Phone number must be between 10 and 12 digits", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
         @Pattern(regexp = "\\d{10,12}", message = "Phone number must be numeric", groups = {CreateGroup.class, UpdateGroup.class, RegisterGroup.class})
         String phoneNumber,
 
