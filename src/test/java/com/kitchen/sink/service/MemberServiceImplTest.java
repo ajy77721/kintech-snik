@@ -291,7 +291,20 @@ class MemberServiceImplTest {
     }
 
     @Test
-    void testChangeMemberStatus_AlreadySet() {
+    void testChangeMemberStatus_AlreadySet_As_Declined() {
+        String memberId = "1";
+        Member member = new Member();
+        member.setId(memberId);
+        member.setStatus(MemberStatus.DECLINED);
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR)));
+        assertEquals("Member is already declined, delete member and register", exception.getMessage());
+    }
+
+    @Test
+    void testChangeMemberStatus_AlreadySet_As_Approved() {
         String memberId = "1";
         Member member = new Member();
         member.setId(memberId);
@@ -326,6 +339,21 @@ class MemberServiceImplTest {
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of()));
+        assertEquals("At least one role is mandatory", exception.getMessage());
+
+        exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.ADMIN)));
+        assertEquals("VISITOR role is mandatory", exception.getMessage());
+    }
+    @Test
+    void testChangeMemberStatus_ApprovedRequiresRolesNull() {
+        String memberId = "1";
+        Member member = new Member();
+        member.setId(memberId);
+        member.setStatus(MemberStatus.PENDING);
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, null));
         assertEquals("At least one role is mandatory", exception.getMessage());
 
         exception = assertThrows(SinkValidationException.class, () -> memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.ADMIN)));

@@ -100,10 +100,8 @@ public class MemberServiceImpl implements MemberService {
         member.setApprovedTime(LocalDateTime.now());
         member.setApprovedBy(jwtUtils.getEmail());
         memberRepository.save(member);
-        if (status.equals(MemberStatus.APPROVED)) {
-            User user = createNewUser(userRoles, member);
-            userRepository.save(user);
-        }
+        User user = createNewUser(userRoles, member);
+        userRepository.save(user);
         log.info("Status of Member with ID: {} changed to {}", memberId, status);
     }
 
@@ -160,7 +158,7 @@ public class MemberServiceImpl implements MemberService {
 
     private void validateMemberForDeletion(Member member) {
         log.debug("Validating Member for deletion: {}", member.getId());
-        if (( member.getStatus()!=null && member.getStatus().equals(MemberStatus.APPROVED) )|| userRepository.findByEmail(member.getEmail()).isPresent()) {
+        if ((member.getStatus() != null && member.getStatus().equals(MemberStatus.APPROVED)) || userRepository.findByEmail(member.getEmail()).isPresent()) {
             throw new SinkValidationException("Member cannot be deleted as user is already created", HttpStatus.PRECONDITION_FAILED);
         }
     }
