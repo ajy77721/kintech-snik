@@ -66,7 +66,8 @@ public class AuthServiceImpl implements AuthService {
         log.info("Attempting to logout user with token: {}", token);
         if (token != null && token.startsWith(BEARER)) {
             String jwt = token.substring(7);
-            userSessionRepository.deleteByToken(jwt);
+            String email = jwtUtils.getEmail();
+            userSessionRepository.deleteByTokenAndEmail(jwt,email);
             log.info("User logged out successfully");
         } else {
             log.warn("Invalid token provided for logout");

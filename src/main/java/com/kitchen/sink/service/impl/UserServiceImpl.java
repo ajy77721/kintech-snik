@@ -77,21 +77,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO getUserDTOByEmail(String email) {
         log.info("Fetching UserDTO by Email: {}", email);
-        Optional<User> user = userRepository.findByEmail(email);
-        if (user.isEmpty()) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
             Member member = memberRepository.findByEmail(email)
                     .orElseThrow(() -> new NotFoundException("User not found with Email: " + email, HttpStatus.BAD_REQUEST));
             if (!member.getStatus().equals(MemberStatus.APPROVED)) {
                 throw new SinkValidationException("Application on " + member.getStatus() + " status", HttpStatus.BAD_REQUEST);
+            }else {
+                throw new SinkValidationException("There appears to be an some issue in user as "+email+". Please contact the administration team for assistance.",HttpStatus.CONFLICT);
             }
+
         }
-        if (user.isPresent()) {
-            if (user.get().getStatus().equals(UserStatus.BLOCKED)) {
-                throw new SinkValidationException("User is blocked", HttpStatus.BAD_REQUEST);
-            }
-            return convertor.convert(user.get(), UserDTO.class);
+        User user = userOptional.get();
+        if (user.getStatus().equals(UserStatus.BLOCKED)) {
+            throw new SinkValidationException("User is blocked", HttpStatus.BAD_REQUEST);
         }
-        return null;
+        return convertor.convert(user, UserDTO.class);
     }
 
     @Override

@@ -28,11 +28,12 @@ public class Member {
     private String email;
 
     @NotNull
-    @Size(min = 10, max = 12)
+    @Size(min = 12, max = 12)
     @Digits(fraction = 0, integer = 12)
     @Column(name = "phone_number")
+    @Indexed(unique = true)
     private String phoneNumber;
-
+    @NotNull
     private String password;
 
     @NotNull

@@ -168,7 +168,7 @@ public class MemberServiceImpl implements MemberService {
         if (status.equals(member.getStatus())) {
             throw new SinkValidationException("Member is already " + status, HttpStatus.NO_CONTENT);
         }
-        if (member.getStatus().equals(MemberStatus.DECLINED) && status.equals(MemberStatus.APPROVED)) {
+        if (member.getStatus().equals(MemberStatus.DECLINED)) {
             throw new SinkValidationException("Member is already declined, delete member and register", HttpStatus.CONFLICT);
         }
         if (status.equals(MemberStatus.APPROVED)) {

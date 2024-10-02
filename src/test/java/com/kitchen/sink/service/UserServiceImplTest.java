@@ -94,6 +94,13 @@ class UserServiceImplTest {
         SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.saveUser(userReqDTO));
         assertEquals("User must have at least one role", exception.getMessage());
     }
+    @Test
+    void testSaveUser_RolesNull() {
+        UserReqDTO userReqDTO = new UserReqDTO("1", "Test User", "test@example.com", "12312","password",null, UserStatus.ACTIVE);
+
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.saveUser(userReqDTO));
+        assertEquals("User must have at least one role", exception.getMessage());
+    }
 
     @Test
     void testSaveUser_NoVisitorRole() {
@@ -240,6 +247,19 @@ class UserServiceImplTest {
         assertEquals("Application on PENDING status", exception.getMessage());
     }
     @Test
+    void testGetUserDTOByEmail_MemberApproved() {
+        String email = "member@example.com";
+        Member member = new Member();
+        member.setEmail(email);
+        member.setStatus(MemberStatus.APPROVED);
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(memberRepository.findByEmail(email)).thenReturn(Optional.of(member));
+
+        SinkValidationException exception = assertThrows(SinkValidationException.class, () -> userService.getUserDTOByEmail(email));
+        assertEquals("There appears to be an some issue in user as member@example.com. Please contact the administration team for assistance.", exception.getMessage());
+    }
+    @Test
     void testUpdateUser_Successful() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Updated User", "updated@example.com", "12312", "password", Set.of(UserRole.VISITOR), UserStatus.ACTIVE);
         User existingUser = new User();
@@ -301,6 +321,20 @@ class UserServiceImplTest {
     }
     @Test
     void testDeleteUser_Successful() {
+        String userId = "1";
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("test@example.com");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        userService.deleteUser(userId);
+
+        verify(userRepository, times(1)).deleteById(userId);
+        verify(memberRepository, times(1)).deleteByEmail(user.getEmail());
+    }
+    @Test
+    void testDeleteUser_Failed_Status_Pending() {
         String userId = "1";
         User user = new User();
         user.setId(userId);

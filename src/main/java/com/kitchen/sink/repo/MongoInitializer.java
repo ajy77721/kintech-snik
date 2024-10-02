@@ -50,6 +50,7 @@ public class MongoInitializer {
         user.setEmail(masterTokenConfig.getEmail().toLowerCase());
         user.setPassword(passwordEncoder.encode(masterTokenConfig.getPassword()));
         user.setRoles(masterTokenConfig.getRoles());
+        user.setPhoneNumber(masterTokenConfig.getPhoneNumber());
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedTime(LocalDateTime.now());
         user.setLastModifiedTime(LocalDateTime.now());

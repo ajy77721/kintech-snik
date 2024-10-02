@@ -14,5 +14,6 @@ public class MasterTokenConfig {
     private String name;
     private String password;
     private String email;
+    private String phoneNumber;
     private Set<UserRole> roles;
 }

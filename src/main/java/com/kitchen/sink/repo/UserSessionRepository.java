@@ -8,5 +8,5 @@ import java.util.Optional;
 
 public interface UserSessionRepository extends MongoRepository<UserSession, String> {
     Optional<UserSession> findByEmail(  @LowerString String username);
-    void deleteByToken( @LowerString String jwt);
+    void deleteByTokenAndEmail(String jwt, @LowerString String email);
 }

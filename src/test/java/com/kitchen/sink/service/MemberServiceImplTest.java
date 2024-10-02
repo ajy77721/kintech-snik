@@ -256,16 +256,15 @@ class MemberServiceImplTest {
         Member member = new Member();
         member.setId(memberId);
         member.setEmail("test@example.com");
-        member.setStatus(MemberStatus.PENDING);
+        member.setStatus(MemberStatus.APPROVED);
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(userRepository.findByEmail(member.getEmail())).thenReturn(Optional.of(new User()));
-
         SinkValidationException exception = assertThrows(SinkValidationException.class, () -> memberService.deleteMember(memberId));
         assertEquals("Member cannot be deleted as user is already created", exception.getMessage());
     }
 
+
     @Test
-    void testChangeMemberStatus_Successful() {
+    void testChangeMemberStatus_Successful_Approved() {
         String memberId = "1";
         Member member = new Member();
         member.setId(memberId);
@@ -277,6 +276,21 @@ class MemberServiceImplTest {
         memberService.changeMemberStatus(memberId, MemberStatus.APPROVED, Set.of(UserRole.VISITOR));
 
         assertEquals(MemberStatus.APPROVED, member.getStatus());
+        verify(memberRepository, times(1)).save(member);
+    }
+    @Test
+    void testChangeMemberStatus_Successful_As_Declined() {
+        String memberId = "1";
+        Member member = new Member();
+        member.setId(memberId);
+        member.setStatus(MemberStatus.PENDING);
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(jwtUtils.getEmail()).thenReturn("approver@example.com");
+
+        memberService.changeMemberStatus(memberId, MemberStatus.DECLINED, Set.of(UserRole.VISITOR));
+
+        assertEquals(MemberStatus.DECLINED, member.getStatus());
         verify(memberRepository, times(1)).save(member);
     }
 

@@ -15,4 +15,6 @@ public interface MemberRepository extends MongoRepository<Member, String> {
     Optional<Member> findByEmail(@Param("email")  @LowerString String email);
 
     boolean existsByEmail(@Param("email")  @LowerString String email);
+
+    boolean existsByPhoneNumber(String email);
 }
