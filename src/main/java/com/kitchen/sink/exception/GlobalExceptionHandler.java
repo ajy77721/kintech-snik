@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.authorization.ExpressionAuthorizationDecision;
@@ -60,6 +61,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<APIResponseDTO<?>> handleDuplicateKeyException(DuplicateKeyException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, "Duplicate Key Exception", "email already used");
+    }
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<APIResponseDTO<?>> handleBadCredentialsException(BadCredentialsException ex) {
+        return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, "Bad Credentials Exception", "incorrect password");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
