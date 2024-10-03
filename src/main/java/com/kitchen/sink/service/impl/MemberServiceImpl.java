@@ -100,8 +100,10 @@ public class MemberServiceImpl implements MemberService {
         member.setApprovedTime(LocalDateTime.now());
         member.setApprovedBy(jwtUtils.getEmail());
         memberRepository.save(member);
-        User user = createNewUser(userRoles, member);
-        userRepository.save(user);
+        if (status.equals(MemberStatus.APPROVED)) {
+            User user = createNewUser(userRoles, member);
+            userRepository.save(user);
+        }
         log.info("Status of Member with ID: {} changed to {}", memberId, status);
     }
 
