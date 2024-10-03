@@ -64,9 +64,24 @@ public class JWTUtils {
     public boolean validateRoles(String token, Collection<? extends GrantedAuthority> roles) {
         Set<String> existingRoles = roles.stream().map(va->va.getAuthority()).collect(Collectors.toSet());
         Set<String> userRoles = extractRoles(token);
-        return userRoles.containsAll(existingRoles);
-    }
+        if (userRoles.size()!=existingRoles.size()){
+            return false;
+        }
 
+        return findSymmetricDifference(existingRoles, userRoles).isEmpty();
+    }
+    public  List<String> findSymmetricDifference(Set<String> set1, Set<String> set2) {
+        Set<String> onlyInA = set1.stream()
+                .filter(element -> !set2.contains(element))
+                .collect(Collectors.toSet());
+
+        Set<String> onlyInB = set2.stream()
+                .filter(element -> !set1.contains(element))
+                .collect(Collectors.toSet());
+
+        onlyInA.addAll(onlyInB);
+        return List.copyOf(onlyInA);
+    }
     private Set<String> extractRoles(String token) {
         Claims claims = extractAllClaims(token);
         return new HashSet<>(claims.get(ROLES, List.class));
