@@ -295,6 +295,42 @@ class UserServiceImplTest {
     }
 
     @Test
+    void testUpdateUser_Successful_With_Member() {
+        UserReqDTO userReqDTO = new UserReqDTO("1", "Updated User", "updated@example.com", "12312", "password", Set.of(UserRole.VISITOR), UserStatus.ACTIVE);
+        User existingUser = new User();
+        existingUser.setId("1");
+        existingUser.setEmail("test@example.com");
+        existingUser.setPassword("encodedPassword");
+        existingUser.setCreatedBy("test@example.com");
+        existingUser.setCreatedTime(LocalDateTime.now());
+
+        User updatedUser = new User();
+        updatedUser.setId("1");
+        updatedUser.setEmail("updated@example.com");
+        updatedUser.setPassword("encodedPassword");
+        updatedUser.setCreatedBy("test@example.com");
+        updatedUser.setCreatedTime(existingUser.getCreatedTime());
+        updatedUser.setLastModifiedBy("test@example.com");
+        updatedUser.setLastModifiedTime(LocalDateTime.now());
+        updatedUser.setStatus(UserStatus.ACTIVE);
+        Member member=new Member();
+
+        when(userRepository.findById(userReqDTO.id())).thenReturn(Optional.of(existingUser));
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(member));
+        when(convertor.convert(userReqDTO, User.class)).thenReturn(updatedUser);
+        when(jwtUtils.getEmail()).thenReturn("test@example.com");
+
+        UserResDTO userResDTO = new UserResDTO("1", "Updated User", "updated@example.com", "12312", Set.of(UserRole.VISITOR), UserStatus.ACTIVE);
+        when(convertor.convert(updatedUser, UserResDTO.class)).thenReturn(userResDTO);
+
+        UserResDTO result = userService.updateUser(userReqDTO);
+
+        verify(userRepository, times(1)).save(updatedUser);
+        assertNotNull(result);
+        assertEquals("1", result.id());
+        assertEquals("updated@example.com", result.email());
+    }
+    @Test
     void testUpdateUser_UserNotFound() {
         UserReqDTO userReqDTO = new UserReqDTO("1", "Updated User", "updated@example.com", "12312", "password", Set.of(UserRole.VISITOR), UserStatus.ACTIVE);
 

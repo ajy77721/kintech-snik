@@ -161,12 +161,12 @@ class AuthServiceImplTest {
     void testLogout_Successful() {
         String token = "Bearer validToken";
 
-        doNothing().when(userSessionRepository).deleteByTokenAndEmail("validToken",anyString());
-
+       doNothing().when(userSessionRepository).deleteByTokenAndEmail("validToken","user-email");
+       when(jwtUtils.getEmail()).thenReturn("user-email");
         LogoutResponseDTO response = authService.logout(token);
 
         assertEquals("Logout successfully", response.message());
-        verify(userSessionRepository, times(1)).deleteByTokenAndEmail("validToken",anyString());
+        verify(userSessionRepository, times(1)).deleteByTokenAndEmail("validToken","user-email");
     }
 
     @Test

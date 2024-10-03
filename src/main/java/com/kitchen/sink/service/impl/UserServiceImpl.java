@@ -104,8 +104,22 @@ public class UserServiceImpl implements UserService {
         User userToBeUpdate = convertor.convert(userDTO, User.class);
         setAuditFieldsForUpdate(userToBeUpdate, user);
         userRepository.save(userToBeUpdate);
+        updateMemberDetails(userToBeUpdate,user.getEmail());
         log.info("User updated: {}", userToBeUpdate);
         return convertor.convert(userToBeUpdate, UserResDTO.class);
+    }
+
+    private void updateMemberDetails(User userToBeUpdate,String existingUserEmail) {
+        Optional<Member> byEmail = memberRepository.findByEmail(existingUserEmail);
+        if(byEmail.isPresent()){
+           Member  member=byEmail.get();
+           member.setEmail(userToBeUpdate.getEmail());
+           member.setName(userToBeUpdate.getName());
+           member.setPhoneNumber(userToBeUpdate.getPhoneNumber());
+           member.setLastModifiedTime(LocalDateTime.now());
+           member.setLastModifiedBy(jwtUtils.getEmail());
+           memberRepository.save(member);
+        }
     }
 
     @Override
