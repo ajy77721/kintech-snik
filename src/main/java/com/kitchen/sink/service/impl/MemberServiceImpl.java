@@ -123,7 +123,12 @@ public class MemberServiceImpl implements MemberService {
     public List<MemberDTO> getAllMembers() {
         log.info("Fetching all Members");
         List<Member> members = memberRepository.findAll();
-        List<MemberDTO> memberDTOs = members.stream().map(member -> convertor.convert(member, MemberDTO.class)).toList();
+        List<MemberDTO> memberDTOs = members.stream().map(member -> convertor.convert(member, MemberDTO.class)).sorted((m1,m2)->{
+            if(m1.status()==MemberStatus.PENDING)
+                    return -1;
+            else
+                return 0;
+        }).toList();
         log.info("All Members fetched");
         return memberDTOs;
     }

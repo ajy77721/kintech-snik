@@ -414,19 +414,36 @@ class MemberServiceImplTest {
         member.setId("1");
         member.setEmail("test@example.com");
         member.setName("Test User");
+        member.setStatus(MemberStatus.APPROVED);
+        Member member2 = new Member();
+        member2.setId("2");
+        member2.setEmail("test@example.com");
+        member2.setName("Test User");
+        member2.setStatus(MemberStatus.PENDING);
+        Member member3 = new Member();
+        member2.setId("2");
+        member2.setEmail("test@example.com");
+        member2.setName("Test User");
+        member2.setStatus(MemberStatus.DECLINED);
 
-        MemberDTO memberDTO = new MemberDTO("1", "Test User","test@example.com",  "1231231231", null, null, null, null, null, null, null);
+        MemberDTO memberDTO = new MemberDTO("1", "Test User","test@example.com",  "1231231231", null, null, null, null, MemberStatus.APPROVED, null, null);
+        MemberDTO memberDTO2 = new MemberDTO("1", "Test User","test@example.com",  "1231231231", null, null, null, null, MemberStatus.PENDING, null, null);
+        MemberDTO memberDTO3 = new MemberDTO("1", "Test User","test@example.com",  "1231231231", null, null, null, null, MemberStatus.DECLINED, null, null);
 
-        when(memberRepository.findAll()).thenReturn(List.of(member));
+        when(memberRepository.findAll()).thenReturn(List.of(member,member2,member3));
         when(convertor.convert(member, MemberDTO.class)).thenReturn(memberDTO);
+        when(convertor.convert(member2, MemberDTO.class)).thenReturn(memberDTO2);
+        when(convertor.convert(member3, MemberDTO.class)).thenReturn(memberDTO3);
 
         List<MemberDTO> result = memberService.getAllMembers();
 
         assertNotNull(result);
-        assertEquals(1, result.size());
+        assertEquals(3, result.size());
         assertEquals("1", result.get(0).id());
         assertEquals("test@example.com", result.get(0).email());
         assertEquals("Test User", result.get(0).name());
+        assertEquals(MemberStatus.PENDING,result.get(0).status());
+
     }
 
     @Test
